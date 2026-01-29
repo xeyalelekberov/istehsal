@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sərmə - Texnoloji Reseptura Panosu</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Montserrat:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .brand-logo { font-family: 'Dancing Script', cursive; font-size: 3.5rem; color: #1e3f1a; line-height: 1; }
+        .glass { background: #ffffff; border-radius: 2.5rem; border: 1px solid rgba(226, 232, 240, 0.8); }
+        .step-content { display: none; }
+        .step-content.active { display: block; animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @media print {
+            body { background: white !important; color: #000 !important; }
+            .no-print { display: none !important; }
+            .glass { border: none !important; box-shadow: none !important; border-radius: 0 !important; width: 100% !important; margin: 0 !important; }
+            #recipeBox { background: #fdfdfd !important; color: #000 !important; border: 2px solid #000 !important; border-radius: 0 !important; padding: 1cm !important; }
+            #recipeBox * { color: #000 !important; }
+            .brand-logo { color: #000 !important; font-size: 4rem !important; }
+        }
+
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 10px; cursor: pointer; background: #cbd5e1; border-radius: 5px; }
+        input[type=range]::-webkit-slider-thumb { height: 26px; width: 26px; border-radius: 50%; background: #1e3f1a; cursor: pointer; -webkit-appearance: none; margin-top: -8px; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="p-2 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10 no-print">
+            <h1 class="brand-logo">Sərmə</h1>
+            <p class="text-green-800 text-[10px] font-bold uppercase tracking-[0.5em] -mt-2">İstehsalat İdarəetmə Panosu</p>
+        </div>
+
+        <div class="glass shadow-2xl overflow-hidden">
+            <div class="flex border-b border-slate-100 bg-slate-50/50 no-print overflow-x-auto">
+                <button onclick="goToStep(1)" id="btn-s1" class="flex-1 min-w-[120px] py-5 font-bold text-green-900 border-b-4 border-green-700 uppercase text-[11px]">1. Məhsul</button>
+                <button onclick="goToStep(2)" id="btn-s2" class="flex-1 min-w-[120px] py-5 font-bold text-slate-400 uppercase text-[11px]">2. Seperasiya</button>
+                <button onclick="goToStep(3)" id="btn-s3" class="flex-1 min-w-[120px] py-5 font-bold text-slate-400 uppercase text-[11px]">3. Resept</button>
+            </div>
+
+            <div class="p-6 md:p-12">
+                <div id="step1" class="step-content active no-print">
+                    <h2 class="text-xl font-bold mb-8 text-center text-slate-600 italic">Məhsul seçin:</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
+                        <button onclick="selectProduct('Qatıq')" class="p-8 bg-white border rounded-[2rem] hover:shadow-xl transition-all group hover:border-blue-500"><i class="fas fa-jug-detergent text-3xl text-blue-500 mb-4 block"></i><span class="font-bold">Qatıq</span></button>
+                        <button onclick="selectProduct('Xama')" class="p-8 bg-white border rounded-[2rem] hover:shadow-xl transition-all group hover:border-yellow-500"><i class="fas fa-mortar-pestle text-3xl text-yellow-500 mb-4 block"></i><span class="font-bold">Xama</span></button>
+                        <button onclick="selectProduct('Qaymaq')" class="p-8 bg-white border rounded-[2rem] hover:shadow-xl transition-all group hover:border-orange-500"><i class="fas fa-droplet text-3xl text-orange-500 mb-4 block"></i><span class="font-bold">Qaymaq</span></button>
+                        <button onclick="selectProduct('Pendir')" class="p-8 bg-white border rounded-[2rem] hover:shadow-xl transition-all group hover:border-amber-600"><i class="fas fa-cheese text-3xl text-amber-500 mb-4 block"></i><span class="font-bold">Pendir</span></button>
+                        <button onclick="selectProduct('Şor')" class="p-8 bg-white border rounded-[2rem] hover:shadow-xl transition-all group hover:border-teal-500"><i class="fas fa-cloud-meatball text-3xl text-teal-500 mb-4 block"></i><span class="font-bold">Şor</span></button>
+                        <button onclick="selectProduct('Kəsmik')" class="p-8 bg-white border rounded-[2rem] hover:shadow-xl transition-all group hover:border-slate-400"><i class="fas fa-cubes-stacked text-3xl text-slate-400 mb-4 block"></i><span class="font-bold">Kəsmik</span></button>
+                    </div>
+                </div>
+
+                <div id="step2" class="step-content no-print">
+                    <h2 class="text-xl font-bold mb-8 italic">Separator Analizi</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <input id="milkQty" type="number" class="p-5 bg-slate-50 rounded-2xl outline-none" placeholder="Giriş Südü (kq)">
+                        <input id="milkFat" type="number" step="0.1" class="p-5 bg-slate-50 rounded-2xl outline-none" placeholder="Yağlılıq (%)">
+                        <input id="creamQty" type="number" class="p-5 bg-slate-50 rounded-2xl outline-none" placeholder="Çıxan Çiyə (kq)">
+                        <input id="milkLoss" type="number" value="2" class="p-5 bg-slate-50 rounded-2xl outline-none" placeholder="İtki (kq)">
+                    </div>
+                    <div id="creamDisplay" class="hidden space-y-6 mb-10">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                            <div class="p-6 bg-green-50 border border-green-200 rounded-3xl">
+                                <span class="block text-green-700 font-bold text-[10px] uppercase italic">Çiyə Yağı</span>
+                                <h3 id="calcCreamVal" class="text-3xl font-black text-green-900">0%</h3>
+                            </div>
+                            <div class="p-6 bg-blue-50 border border-blue-200 rounded-3xl">
+                                <span class="block text-blue-700 font-bold text-[10px] uppercase italic">Üzsüz Süd Stok</span>
+                                <h3 id="availableSkimVal" class="text-3xl font-black text-blue-900">0 kq</h3>
+                            </div>
+                        </div>
+                        <div id="creamExplanation" class="p-8 bg-white border rounded-3xl text-sm border-l-8 border-l-green-800 shadow-sm leading-relaxed text-slate-600"></div>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="calculateCream()" class="flex-1 py-5 bg-green-800 text-white rounded-2xl font-black uppercase shadow-lg">Analiz et</button>
+                        <button onclick="goToStep(3)" class="flex-1 py-5 bg-slate-200 text-slate-600 rounded-2xl font-black uppercase">Reseptə Keç</button>
+                    </div>
+                </div>
+
+                <div id="step3" class="step-content">
+                    <div id="liveStockPanel" class="mb-8 p-6 bg-slate-100 rounded-[2rem] border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg"><i class="fas fa-vial"></i></div>
+                            <div>
+                                <span class="text-[10px] font-black text-slate-400 uppercase block tracking-widest">Əldə olan Üzsüz Süd</span>
+                                <b id="stockSkim" class="text-2xl text-blue-700">0.00 kq</b>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4 border-t md:border-t-0 md:border-l border-slate-200 pt-4 md:pt-0 md:pl-6">
+                            <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center text-white shadow-lg"><i class="fas fa-droplet"></i></div>
+                            <div>
+                                <span class="text-[10px] font-black text-slate-400 uppercase block tracking-widest">Əldə olan Öz Çiyəmiz</span>
+                                <b id="stockCream" class="text-2xl text-green-700">0.00 kq</b>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <div class="space-y-8 no-print">
+                            <h2 class="text-xl font-bold italic text-slate-700">Resepturanın Qurulması</h2>
+                            <div class="p-8 bg-slate-50 rounded-[2.5rem] border space-y-8">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="space-y-2">
+                                        <label class="text-[11px] font-black text-green-900 uppercase tracking-wider">1-ci Mənbə</label>
+                                        <select id="s1" onchange="syncS()" class="w-full p-4 rounded-xl border shadow-sm outline-none">
+                                            <option value="Öz istehsalımız olan çiyə">Öz istehsalımız olan çiyə</option>
+                                            <option value="Kənardan alınan çiyə">Kənardan alınan çiyə</option>
+                                            <option value="Kərə yağı">Kərə yağı</option>
+                                            <option value="Üzlü süd">Üzlü süd</option>
+                                        </select>
+                                        <input id="f1" type="number" placeholder="Yağ %" class="hidden w-full p-4 border rounded-xl bg-white mt-2">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-[11px] font-black text-blue-900 uppercase tracking-wider">2-ci Mənbə</label>
+                                        <select id="s2" onchange="syncS()" class="w-full p-4 rounded-xl border shadow-sm outline-none">
+                                            <option value="Yoxdur" selected>Seçilməyib</option>
+                                            <option value="Öz istehsalımız olan çiyə">Öz istehsalımız olan çiyə</option>
+                                            <option value="Kənardan alınan çiyə">Kənardan alınan çiyə</option>
+                                            <option value="Kərə yağı">Kərə yağı</option>
+                                            <option value="Üzlü süd">Üzlü süd</option>
+                                        </select>
+                                        <input id="f2" type="number" placeholder="Yağ %" class="hidden w-full p-4 border rounded-xl bg-white mt-2">
+                                    </div>
+                                </div>
+                                <div id="ratioDiv" class="hidden space-y-6 pt-6 border-t">
+                                    <div class="flex justify-between font-black text-[11px] uppercase">
+                                        <span id="label1" class="text-green-800">Pay 1: 50%</span>
+                                        <span id="label2" class="text-blue-800">Pay 2: 50%</span>
+                                    </div>
+                                    <input type="range" id="ratioRange" min="1" max="99" value="50" oninput="updateRatioLabels()" class="w-full">
+                                </div>
+                            </div>
+                            <div class="p-8 bg-blue-50 rounded-[2.5rem] border">
+                                <label class="flex items-center space-x-4 cursor-pointer mb-6">
+                                    <input type="checkbox" id="usePowder" onchange="togglePowder()" class="w-7 h-7 text-blue-600 rounded-lg">
+                                    <span class="font-black text-blue-900 uppercase text-xs italic">Quru süd qatılsın?</span>
+                                </label>
+                                <div id="powderFields" class="hidden grid grid-cols-2 gap-4">
+                                    <input id="powderQty" type="number" placeholder="kq" class="p-4 rounded-xl border shadow-sm">
+                                    <input id="powderFat" type="number" value="25" class="p-4 rounded-xl border shadow-sm">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-6">
+                                <input id="tQty" type="number" class="p-5 border rounded-2xl outline-none focus:ring-2 focus:ring-green-600" placeholder="Hədəf Miqdar (kq)">
+                                <input id="tFat" type="number" step="0.1" class="p-5 border rounded-2xl outline-none focus:ring-2 focus:ring-green-600" placeholder="Hədəf Yağ %">
+                            </div>
+                            <button onclick="calculateFinal()" class="w-full py-6 bg-green-900 text-white rounded-[2.5rem] font-black text-xl shadow-xl uppercase">Resepti Hazırla</button>
+                        </div>
+
+                        <div id="resArea" class="hidden space-y-8">
+                            <div id="recipeBox" class="bg-slate-50 text-slate-900 p-12 rounded-[3.5rem] shadow-2xl relative border-4 border-slate-200">
+                                <div class="absolute top-12 right-12 opacity-30 text-4xl brand-logo">Sərmə</div>
+                                <h3 class="text-2xl font-black uppercase text-slate-500 mb-6 tracking-tighter italic border-b border-slate-200 pb-4">İstehsalat Vərəqi</h3>
+                                <div id="productTitleArea" class="mb-10">
+                                    <span class="text-slate-400 font-bold uppercase text-xs tracking-[0.3em] block mb-2">Seçilmiş Məhsul:</span>
+                                    <span id="finalPName" class="font-black text-6xl text-slate-900 uppercase block tracking-tighter"></span>
+                                </div>
+                                <div id="items" class="space-y-6 text-xl mb-12 border-b border-slate-200 pb-10"></div>
+                                <div class="mt-8">
+                                    <p class="font-black text-slate-900 mb-4 uppercase text-sm tracking-widest underline underline-offset-8">İstehsaldan Sonra Qalan Qalıq:</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div class="p-4 bg-white border-2 border-slate-200 rounded-2xl">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Qalan Üzsüz Süd:</span>
+                                            <b id="finalSkimRem" class="text-2xl text-slate-900">0.00 kq</b>
+                                        </div>
+                                        <div class="p-4 bg-white border-2 border-slate-200 rounded-2xl">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Qalan Öz Çiyəmiz:</span>
+                                            <b id="finalCreamRem" class="text-2xl text-slate-900">0.00 kq</b>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="window.print()" class="no-print mt-12 w-full py-5 bg-slate-800 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-black transition-all">Sənədi Çap Et</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pName = "";
+        let cFat = 0, avSkim = 0, avCream = 0;
+
+        function goToStep(s) {
+            document.querySelectorAll('.step-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('step' + s).classList.add('active');
+            document.querySelectorAll('[id^="btn-s"]').forEach((b, i) => {
+                const act = (i+1 === s);
+                b.classList.toggle('text-green-900', act); b.classList.toggle('border-b-4', act);
+                b.classList.toggle('border-green-700', act); b.classList.toggle('text-slate-400', !act);
+            });
+        }
+
+        function selectProduct(n) { pName = n; goToStep(2); }
+
+        function syncS() {
+            const s1 = document.getElementById('s1'), s2 = document.getElementById('s2');
+            const v1 = s1.value, v2 = s2.value;
+            document.getElementById('f1').classList.toggle('hidden', v1 === 'Öz istehsalımız olan çiyə');
+            document.getElementById('f2').classList.toggle('hidden', v2 === 'Öz istehsalımız olan çiyə' || v2 === 'Yoxdur');
+            document.getElementById('ratioDiv').classList.toggle('hidden', v2 === 'Yoxdur');
+            Array.from(s2.options).forEach(opt => opt.disabled = (opt.value === v1 && opt.value !== "Yoxdur"));
+            Array.from(s1.options).forEach(opt => opt.disabled = (opt.value === v2 && v2 !== "Yoxdur"));
+            updateRatioLabels();
+        }
+
+        function updateRatioLabels() {
+            const r = document.getElementById('ratioRange').value;
+            document.getElementById('label1').innerText = `${document.getElementById('s1').value}: ${r}%`;
+            document.getElementById('label2').innerText = `${document.getElementById('s2').value}: ${100-r}%`;
+        }
+
+        function togglePowder() { document.getElementById('powderFields').classList.toggle('hidden', !document.getElementById('usePowder').checked); }
+
+        function calculateCream() {
+            const mQ = parseFloat(document.getElementById('milkQty').value) || 0;
+            const mF = parseFloat(document.getElementById('milkFat').value) || 0;
+            const cQ = parseFloat(document.getElementById('creamQty').value) || 0;
+            const mL = parseFloat(document.getElementById('milkLoss').value) || 0;
+            if(mQ > 0 && cQ > 0) {
+                // YENİ HESABLAMA: İtki çıxılmadan bütün südün yağı üzərindən
+                const totalFatKg = (mQ * mF) / 100;
+                cFat = (totalFatKg / cQ) * 100;
+                avSkim = (mQ - mL) - cQ;
+                avCream = cQ;
+
+                document.getElementById('calcCreamVal').innerText = cFat.toFixed(2) + "%";
+                document.getElementById('availableSkimVal').innerText = avSkim.toFixed(2) + " kq";
+                
+                // CANLI PANELİ YENİLƏ
+                document.getElementById('stockSkim').innerText = avSkim.toFixed(2) + " kq";
+                document.getElementById('stockCream').innerText = avCream.toFixed(2) + " kq";
+
+                document.getElementById('creamExplanation').innerHTML = `
+                    <p class="mb-3 font-black text-green-900 uppercase text-[10px] tracking-widest italic">Laboratoriya Hesabatı:</p>
+                    <b>1. Xammal Girişi:</b> Seperatora daxil olan ümumi süd kütləsi: <b>${mQ} kq</b>.<br><br>
+                    <b>2. Yağ Balansı:</b> Südün yağlılığı <b>%${mF}</b> olduğu üçün, daxilindəki cəmi yağ miqdarı <b>${totalFatKg.toFixed(2)} kq</b> təşkil edir.<br><br>
+                    <b>3. Konsentrasiya:</b> Seperasiya prosesindəki itki kütlə itkisi hesab olunur, yağın hamısının (<b>${totalFatKg.toFixed(2)} kq</b>) çıxan <b>${cQ} kq</b> çiyəyə toplandığı nəzərə alınır.<br><br>
+                    <b>4. Nəticə:</b> Ümumi süd yağını çiyə kütləsinə böldükdə çiyənin yağlılığı <b>%${cFat.toFixed(2)}</b> təyin edilir.
+                `;
+                document.getElementById('creamDisplay').classList.remove('hidden');
+                syncS();
+            } else alert("Məlumat daxil edin!");
+        }
+
+        function calculateFinal() {
+            const sel1 = document.getElementById('s1').value, sel2 = document.getElementById('s2').value;
+            const fat1 = (sel1 === 'Öz istehsalımız olan çiyə') ? cFat : parseFloat(document.getElementById('f1').value) || 0;
+            const fat2 = (sel2 === 'Öz istehsalımız olan çiyə') ? cFat : parseFloat(document.getElementById('f2').value) || 0;
+            const tQty = parseFloat(document.getElementById('tQty').value) || 0, tFat = parseFloat(document.getElementById('tFat').value) || 0;
+            if(tQty === 0) return alert("Hədəf çəki daxil edin.");
+            const useP = document.getElementById('usePowder').checked;
+            const pQ = useP ? parseFloat(document.getElementById('powderQty').value) : 0, pF = useP ? parseFloat(document.getElementById('powderFat').value) : 25;
+            const r = document.getElementById('ratioRange').value / 100, fatFromP = (pQ * pF) / 100;
+            let skimN, c1N, c2N = 0;
+
+            if(sel2 === 'Yoxdur') {
+                c1N = (tQty * tFat / 100 - fatFromP) / (fat1 / 100);
+                skimN = tQty - c1N - pQ;
+            } else {
+                const fMix = (r * fat1) + ((1 - r) * fat2);
+                const totalMixQty = (tQty * tFat / 100 - fatFromP) / (fMix / 100);
+                c1N = totalMixQty * r; c2N = totalMixQty * (1 - r);
+                skimN = tQty - totalMixQty - pQ;
+            }
+
+            let usedOwnCream = 0;
+            if(sel1 === 'Öz istehsalımız olan çiyə') usedOwnCream += c1N;
+            if(sel2 === 'Öz istehsalımız olan çiyə') usedOwnCream += c2N;
+            
+            document.getElementById('finalSkimRem').innerText = (avSkim - skimN).toFixed(2) + " kq";
+            document.getElementById('finalCreamRem').innerText = (avCream - usedOwnCream).toFixed(2) + " kq";
+
+            document.getElementById('resArea').classList.remove('hidden');
+            document.getElementById('finalPName').innerText = pName + " - " + tFat + "%";
+            
+            document.getElementById('items').innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex justify-between border-b-2 border-slate-100 pb-2 italic"><span>Üzsüz süd (0%):</span><b class="text-slate-900">${skimN.toFixed(2)} kq</b></div>
+                    <div class="flex justify-between border-b-2 border-slate-100 pb-2"><span>${sel1} (${fat1.toFixed(1)}%):</span><b class="text-slate-900">${c1N.toFixed(2)} kq</b></div>
+                    ${sel2 !== 'Yoxdur' ? `<div class="flex justify-between border-b-2 border-slate-100 pb-2"><span>${sel2} (${fat2.toFixed(1)}%):</span><b class="text-slate-900">${c2N.toFixed(2)} kq</b></div>` : ''}
+                    ${useP ? `<div class="flex justify-between border-b-2 border-slate-100 pb-2 italic text-slate-500"><span>Quru süd (${pF}%):</span><b>${pQ.toFixed(2)} kq</b></div>` : ''}
+                </div>
+                <div class="mt-8 p-5 bg-slate-900 text-white rounded-2xl text-center font-black text-3xl">CƏMİ: ${tQty} kq</div>
+            `;
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
