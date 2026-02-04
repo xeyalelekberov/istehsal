@@ -3,831 +3,568 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sərmə ERP - İstehsalat Sistemi</title>
+    <title>Sərmə ERP v9.0 (Edit & Fix)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #1e293b; }
-        
-        .panel { display: none; animation: fadeIn 0.3s ease-in-out; }
-        .panel.active { display: block; }
-        .nav-btn { transition: all 0.2s; border-left: 4px solid transparent; }
-        .nav-btn:hover { background-color: #f8fafc; }
-        .nav-btn.active { background-color: #eff6ff; border-left-color: #3b82f6; color: #1d4ed8; }
-        .stock-card { transition: transform 0.2s; }
-        .stock-card:hover { transform: translateY(-2px); }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .modal-bg { background-color: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
-        
-        /* Qablaşma inputları üçün xüsusi stil */
-        .pkg-input { font-size: 11px; padding: 4px 8px; height: 34px; }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        .panel { display: none; opacity: 0; transform: translateY(10px); transition: all 0.3s ease-in-out; }
+        .panel.active { display: block; opacity: 1; transform: translateY(0); }
+        .inp-field { width: 100%; padding: 10px 14px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+        .inp-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); outline: none; }
+        .inp-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; display: block; }
+        .nav-pill { cursor: pointer; padding: 8px 16px; border-radius: 99px; font-size: 14px; font-weight: 600; color: #4b5563; transition: all 0.2s; white-space: nowrap; }
+        .nav-pill:hover { background-color: #e5e7eb; color: #111827; }
+        .nav-pill.active { background-color: #2563eb; color: white; }
+        .card { background: white; border-radius: 16px; border: 1px solid #f3f4f6; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 24px; }
+        .btn-primary { background-color: #2563eb; color: white; font-weight: 600; padding: 10px 20px; border-radius: 10px; transition: 0.2s; }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .modal-overlay { background-color: rgba(255,255,255,0.8); backdrop-filter: blur(5px); }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex flex-col md:flex-row">
+<body class="flex flex-col min-h-screen">
 
-    <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-x-full opacity-0"></div>
-
-    <aside class="w-full md:w-64 bg-white shadow-lg z-20 flex-shrink-0">
-        <div class="p-6 border-b border-slate-100 flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-blue-200 shadow-lg">S</div>
-            <div>
-                <h1 class="font-bold text-lg leading-tight">SƏRMƏ ERP</h1>
-                <div id="dbStatus" class="text-[10px] font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span> Qoşulur...
-                </div>
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="container mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-lg"><i class="fas fa-cube"></i></div>
+                <h1 class="font-bold text-gray-800 text-lg">SƏRMƏ ERP</h1>
             </div>
+            <nav class="hidden md:flex gap-1 bg-gray-100 p-1 rounded-full overflow-x-auto">
+                <div onclick="nav('dashboard')" id="nav-dashboard" class="nav-pill active">Dashboard</div>
+                <div onclick="nav('cash')" id="nav-cash" class="nav-pill">Kassa</div>
+                <div onclick="nav('production')" id="nav-production" class="nav-pill">İstehsalat</div>
+                <div onclick="nav('products')" id="nav-products" class="nav-pill">Məhsullar</div>
+                <div onclick="nav('stock')" id="nav-stock" class="nav-pill">Stok</div>
+                <div onclick="nav('partners')" id="nav-partners" class="nav-pill">Tərəfdaşlar</div>
+                <div onclick="nav('invoices')" id="nav-invoices" class="nav-pill">Faktura</div>
+                <div onclick="nav('logs')" id="nav-logs" class="nav-pill">Loglar</div>
+            </nav>
         </div>
-        <nav class="p-4 space-y-2">
-            <button onclick="showPanel('stock')" id="nav-stock" class="nav-btn active w-full text-left p-3 rounded-r-lg font-medium flex items-center gap-3 text-slate-600">
-                <i class="fas fa-boxes w-6 text-center"></i> Anbar & Stok
-            </button>
-            <button onclick="showPanel('separator')" id="nav-separator" class="nav-btn w-full text-left p-3 rounded-r-lg font-medium flex items-center gap-3 text-slate-600">
-                <i class="fas fa-filter w-6 text-center"></i> Seperator
-            </button>
-            <button onclick="showPanel('production')" id="nav-production" class="nav-btn w-full text-left p-3 rounded-r-lg font-medium flex items-center gap-3 text-slate-600">
-                <i class="fas fa-industry w-6 text-center"></i> İstehsalat
-            </button>
-            <button onclick="showPanel('prod_history')" id="nav-prod_history" class="nav-btn w-full text-left p-3 rounded-r-lg font-medium flex items-center gap-3 text-slate-600">
-                <i class="fas fa-clipboard-list w-6 text-center"></i> İstehsal Tarixçəsi
-            </button>
-            <button onclick="showPanel('logs')" id="nav-logs" class="nav-btn w-full text-left p-3 rounded-r-lg font-medium flex items-center gap-3 text-slate-600">
-                <i class="fas fa-history w-6 text-center"></i> Ümumi Loglar
-            </button>
-        </nav>
-    </aside>
+    </header>
 
-    <main class="flex-1 p-4 md:p-8 overflow-y-auto">
+    <main class="container mx-auto px-4 py-8 flex-1 max-w-7xl">
 
-        <div id="panel-stock" class="panel active space-y-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-bold text-slate-800">Xammal Anbarı</h2>
-                <button onclick="openStockModal('add')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-blue-200 transition">
-                    <i class="fas fa-plus mr-2"></i> Mədaxil
-                </button>
+        <div id="panel-dashboard" class="panel active">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="card border-l-4 border-l-blue-500"><span class="inp-label">Kassa</span><div id="dashCash" class="text-3xl font-bold mt-1">0.00 ₼</div></div>
+                <div class="card border-l-4 border-l-green-500"><span class="inp-label">Günlük Satış</span><div id="dashSales" class="text-3xl font-bold mt-1">0.00 ₼</div></div>
+                <div class="card border-l-4 border-l-orange-500"><span class="inp-label">Stok</span><div id="dashStock" class="text-3xl font-bold mt-1">0</div></div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4" id="stockContainer">
-                <div class="col-span-full text-center py-10 text-slate-400"><div class="loader mr-2"></div> Yüklənir...</div>
-            </div>
+            <div class="card h-[450px] p-0 overflow-hidden relative"><div id="map" class="h-full w-full"></div></div>
         </div>
 
-        <div id="panel-separator" class="panel space-y-6">
-            <h2 class="text-2xl font-bold text-slate-800">Seperasiya Prosesi</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-blue-800 mb-4 border-b pb-2">1. Giriş Məlumatları</h3>
-                    <div class="space-y-4">
-                        <div class="input-group">
-                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Stokdakı Süd (Mövcud: <span id="sepStockDisplay" class="text-blue-600">0</span> kq)</label>
-                            <input type="number" id="sepInputMilk" class="w-full p-3 border rounded-lg font-bold text-slate-700 focus:ring-2 ring-blue-200 outline-none" placeholder="İstifadə ediləcək miqdar (kq)">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Süd Yağlılıq %</label>
-                                <input type="number" id="sepInputFat" class="w-full p-3 border rounded-lg font-bold text-slate-700 outline-none" placeholder="%">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">İtki (Litr/kq)</label>
-                                <input type="number" id="sepInputLoss" value="2" class="w-full p-3 border rounded-lg font-bold text-red-500 outline-none">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Alınan Çiyə (kq)</label>
-                            <input type="number" id="sepOutputCream" class="w-full p-3 border rounded-lg font-bold text-green-600 outline-none" placeholder="Çıxan çiyə kütləsi">
-                        </div>
-                        <button onclick="calculateSeparator()" class="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition">Hesabla</button>
+        <div id="panel-cash" class="panel">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="card bg-slate-800 text-white"><span class="text-slate-400 text-xs font-bold uppercase">Balans</span><div id="cashTotal" class="text-4xl font-bold mt-2">0.00 ₼</div></div>
+                    <div class="card space-y-3">
+                        <div class="flex justify-between text-sm"><span>Dünən:</span><span id="cashPrev" class="font-bold">0.00</span></div>
+                        <div class="flex justify-between text-sm text-green-600"><span>Giriş:</span><span id="cashIn" class="font-bold">0.00</span></div>
+                        <div class="flex justify-between text-sm text-red-600"><span>Çıxış:</span><span id="cashOut" class="font-bold">0.00</span></div>
+                        <div class="border-t pt-2 flex justify-between font-bold text-blue-600"><span>Günlük:</span><span id="cashDayBal">0.00</span></div>
                     </div>
+                    <button onclick="document.getElementById('catModal').classList.remove('hidden')" class="w-full py-3 bg-white border rounded-xl font-bold text-gray-600 hover:bg-gray-50">Kateqoriyalar</button>
                 </div>
-
-                <div id="sepResultBox" class="bg-slate-50 p-6 rounded-2xl border border-dashed border-slate-300 hidden">
-                    <h3 class="font-bold text-green-800 mb-4 border-b pb-2">2. Nəticə və Qərar</h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center p-3 bg-white rounded shadow-sm">
-                            <span class="text-slate-500">Çiyə Yağlılığı (Hesablanan):</span>
-                            <span id="sepResCreamFat" class="text-2xl font-bold text-green-600">0%</span>
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="card">
+                        <h3 class="font-bold text-lg mb-4">Yeni Əməliyyat</h3>
+                        <div class="flex flex-wrap gap-4">
+                            <select id="cashType" class="inp-field w-32 font-bold" onchange="updateCatSelect()"><option value="in">Mədaxil</option><option value="out">Məxaric</option></select>
+                            <select id="cashCat" class="inp-field flex-1"><option>Kateqoriya...</option></select>
+                            <input id="cashAmt" type="number" placeholder="Məbləğ" class="inp-field w-32 font-bold">
+                            <button onclick="addCashTx()" class="btn-primary">Yaz</button>
                         </div>
-                        <div class="flex justify-between items-center p-3 bg-white rounded shadow-sm">
-                            <span class="text-slate-500">Alınan Obrat (Üzsüz - 0%):</span>
-                            <span id="sepResSkimQty" class="text-xl font-bold text-slate-700">0 kq</span>
-                        </div>
-                        <button onclick="commitSeparator()" class="w-full py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-200">
-                            <i class="fas fa-check-circle mr-2"></i> Təsdiqlə və Stoka Vur
-                        </button>
+                        <input id="cashDesc" placeholder="Qeyd" class="inp-field mt-4">
                     </div>
+                    <div class="card p-0 overflow-hidden"><table class="w-full text-sm text-left"><tbody id="cashTable" class="divide-y"></tbody></table></div>
                 </div>
             </div>
         </div>
 
-        <div id="panel-production" class="panel space-y-6">
-            <h2 class="text-2xl font-bold text-slate-800">İstehsalat Planlaması</h2>
-            
-            <div class="flex gap-4 mb-6">
-                <button onclick="setProdMethod('A')" id="btnMethodA" class="flex-1 py-3 px-4 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-bold transition">
-                    Metod A: Hədəf Məhsul<br><span class="text-xs font-normal text-slate-500">Plan: X kq məhsul</span>
-                </button>
-                <button onclick="setProdMethod('B')" id="btnMethodB" class="flex-1 py-3 px-4 rounded-xl border-2 border-transparent bg-white text-slate-600 font-bold hover:bg-slate-50 transition">
-                    Metod B: Standartlaşdırma<br><span class="text-xs font-normal text-slate-500">Əlimdəkinə nə qədər qatım?</span>
-                </button>
+        <div id="panel-products" class="panel">
+            <div class="flex items-center justify-between mb-6">
+                <div class="bg-white p-1 rounded-lg border inline-flex">
+                    <button onclick="setProdTab('raw')" id="tab-raw" class="px-6 py-2 rounded-md font-bold text-sm bg-blue-100 text-blue-700">Xammal</button>
+                    <button onclick="setProdTab('finished')" id="tab-finished" class="px-6 py-2 rounded-md font-bold text-sm text-gray-500">Hazır Məhsul</button>
+                </div>
+                <button onclick="document.getElementById('prodCatModal').classList.remove('hidden')" class="text-sm font-bold text-blue-600 hover:underline"><i class="fas fa-cog"></i> Kateqoriya & Növlər</button>
             </div>
+            <div class="card mb-6">
+                <div id="form-raw" class="flex flex-wrap gap-4 items-end">
+                    <div class="flex-1"><span class="inp-label">Xammal Adı</span><input id="rawName" class="inp-field"></div>
+                    <div class="flex-1"><span class="inp-label">Kateqoriya</span><select id="rawCatSelect" class="inp-field"></select></div>
+                    <button onclick="addRaw()" class="btn-primary h-[42px]">Yadda Saxla</button>
+                </div>
+                <div id="form-finished" class="flex flex-wrap gap-4 items-end hidden">
+                    <div class="flex-1"><span class="inp-label">Məhsul Adı</span><input id="prodName" class="inp-field"></div>
+                    <div class="w-40"><span class="inp-label">Kateqoriya</span><select id="prodCatSelect" class="inp-field"></select></div>
+                    <div class="w-32"><span class="inp-label">Qablaşma (Məs: 680)</span><input id="prodPkg" placeholder="680 = 0.68kg" class="inp-field"></div>
+                    <div class="w-32"><span class="inp-label">Qiymət</span><input id="prodPrice" type="number" class="inp-field"></div>
+                    <button onclick="addProd()" class="btn-primary h-[42px]">Yadda Saxla</button>
+                </div>
+            </div>
+            <div class="card p-0 overflow-hidden"><table class="w-full text-sm text-left"><tbody id="prodTable" class="divide-y"></tbody></table></div>
+        </div>
 
+        <div id="panel-production" class="panel">
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
-                    
-                    <div class="input-group">
-                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Məhsul Adı</label>
-                        <select id="prodName" class="w-full p-2 border rounded bg-slate-50 font-bold text-slate-700">
-                            <option>Qatıq</option><option>Xama</option><option>Qaymaq</option><option>Pendir</option><option>Şor</option>
-                        </select>
+                
+                <div class="card h-fit">
+                    <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fas fa-filter"></i></div>
+                        <h2 class="text-xl font-bold text-gray-800">Seperator</h2>
+                    </div>
+                    <div class="space-y-4">
+                        <div><span class="inp-label">Giriş Südü (Stokdan)</span><select id="sepMilkSource" class="inp-field font-bold bg-slate-50"></select></div>
+                        <input id="sepInputQty" type="number" placeholder="Emal ediləcək miqdar (kq)" class="inp-field font-bold text-lg">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><span class="inp-label">Öz istehsalımız olan çiyə (kq)</span><input id="sepCreamOut" type="number" class="inp-field text-green-600 font-bold"></div>
+                            <div><span class="inp-label">İtki (kq)</span><input id="sepLoss" type="number" value="0" class="inp-field text-red-500 font-bold"></div>
+                        </div>
+                        <div><span class="inp-label">Giriş Yağlılığı (%)</span><input id="sepFat" class="inp-field bg-gray-100" readonly></div>
+                        <button onclick="calcSep()" class="w-full py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition">Hesabla</button>
+                        <div id="sepResult" class="hidden bg-green-50 p-4 rounded-xl border border-green-200 mt-2 space-y-2">
+                            <div class="flex justify-between text-sm"><span>Çiyə Yağlılığı:</span> <span id="resCreamFat" class="font-bold text-green-700">0%</span></div>
+                            <div class="flex justify-between text-sm"><span>Üzsüz süd (Obrat):</span> <span id="resSkimQty" class="font-bold text-gray-700">0 kq</span></div>
+                            <div class="flex justify-between text-sm text-red-500"><span>İtki:</span> <span id="resLossQty" class="font-bold">0 kq</span></div>
+                            <button onclick="commitSep()" class="btn-primary w-full mt-2">Təsdiqlə və Anbara Vur</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                        <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><i class="fas fa-industry"></i></div>
+                        <h2 class="text-xl font-bold text-gray-800">İstehsalat</h2>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Hədəf Yağ %</label>
-                            <input type="number" id="prodTargetFat" class="w-full p-2 border rounded font-bold text-blue-600" placeholder="%">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Yağ Mənbəyi</label>
-                            <select id="prodFatSource" class="w-full p-2 border rounded font-bold bg-slate-50 text-sm"></select>
-                        </div>
+                    <div class="bg-gray-100 p-1 rounded-lg inline-flex w-full mb-6">
+                        <button onclick="setMethod('A')" id="btnMetA" class="flex-1 py-2 rounded-md text-sm font-bold bg-white text-blue-700 shadow-sm transition">Metod A (Hədəf)</button>
+                        <button onclick="setMethod('B')" id="btnMetB" class="flex-1 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-700 transition">Metod B (Standart)</button>
                     </div>
 
-                    <div id="methodA-inputs" class="space-y-4">
-                        <div class="input-group relative">
-                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Planlanan Məhsul (kq)</label>
+                    <div class="space-y-4">
+                        <div id="inputsA">
+                            <span class="inp-label text-blue-600">Planlanan Yekun Kütlə (kq)</span>
+                            <input id="totalQtyA" type="number" class="inp-field font-bold text-lg" oninput="updateDryMilk()">
+                        </div>
+
+                        <div id="inputsB" class="hidden">
+                            <span class="inp-label">Əsas Xammal (Obrat)</span>
                             <div class="flex gap-2">
-                                <input type="number" id="prodTargetQty" class="flex-1 p-2 border rounded font-bold" placeholder="0" oninput="updatePowderLabel(); calcPkgTotal()">
-                                <button onclick="calculateMaxPossible()" class="px-3 bg-orange-100 text-orange-700 rounded font-bold text-xs hover:bg-orange-200 transition">
-                                    <i class="fas fa-bolt mr-1"></i> MAX
-                                </button>
+                                <select id="baseSourceB" class="inp-field w-1/3 text-xs"></select>
+                                <input id="baseQtyB" type="number" class="inp-field font-bold" oninput="updateDryMilk()">
                             </div>
                         </div>
-                    </div>
 
-                    <div id="methodB-inputs" class="space-y-4 hidden">
-                        <div class="input-group">
-                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Əsas Xammal (Obrat/Süd)</label>
-                            <select id="prodBaseStock" class="w-full p-2 border rounded font-bold bg-slate-50 mb-2"></select>
-                            <input type="number" id="prodBaseQty" class="w-full p-2 border rounded font-bold" placeholder="Miqdar (kq)" oninput="updatePowderLabel()">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><span class="inp-label">Hədəf Yağ %</span><input id="targetFat" type="number" class="inp-field font-bold text-blue-600"></div>
+                            <div><span class="inp-label">Yağ Mənbəyi</span><select id="fatSource" class="inp-field"></select></div>
                         </div>
-                    </div>
 
-                    <div class="flex items-center gap-2 bg-slate-50 p-3 rounded">
-                        <input type="checkbox" id="usePowder" class="w-5 h-5" onchange="updatePowderLabel()">
-                        <label for="usePowder" class="text-sm font-bold text-slate-600">
-                            Quru Süd (1 Ton üçün 15 kq) 
-                            <span id="lblPowderCalc" class="text-blue-600 ml-1 font-normal"></span>
-                        </label>
-                    </div>
-                    
-                    <div class="pt-4 border-t">
-                        <div class="flex justify-between items-center mb-2">
-                            <h4 class="text-xs font-bold uppercase text-slate-500">Qablaşma Planı</h4>
-                            <button onclick="addPkgRow()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-2 py-1 rounded font-bold">
-                                <i class="fas fa-plus"></i> Əlavə et
-                            </button>
-                        </div>
-                        <div id="pkgContainer" class="space-y-1 max-h-48 overflow-y-auto pr-1"></div>
-                        <div class="text-right mt-2 text-xs font-bold text-slate-400" id="pkgResidue">Qalıq: -</div>
-                    </div>
-
-                    <button onclick="calculateProduction()" class="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
-                        Planı Hesabla
-                    </button>
-                </div>
-
-                <div id="prodResultBox" class="bg-slate-800 text-white p-6 rounded-2xl hidden flex flex-col justify-between">
-                    <div>
-                        <h3 class="text-xl font-bold mb-1 opacity-80">İstehsal Planı</h3>
-                        <h2 id="resProdName" class="text-3xl font-bold mb-6 text-yellow-400">Qatıq</h2>
-                        
-                        <div class="space-y-4 text-sm">
-                            <div class="flex justify-between border-b border-slate-600 pb-2">
-                                <span>Ümumi Məhsul:</span>
-                                <span id="resTotalQty" class="font-bold text-lg">0 kq</span>
+                        <div class="flex items-center gap-3 p-3 border rounded-lg bg-gray-50">
+                            <input type="checkbox" id="useDryMilk" class="w-5 h-5 accent-blue-600" onchange="updateDryMilk()">
+                            <div class="flex-1">
+                                <span class="inp-label">Quru Süd</span>
+                                <select id="dryRate" class="text-sm bg-transparent border-none font-bold" onchange="updateDryMilk()"><option value="15">15 kq/t</option><option value="20">20 kq/t</option><option value="25">25 kq/t</option></select>
                             </div>
-                            <div class="flex justify-between">
-                                <span id="resBaseName">Obrat:</span>
-                                <span id="resBaseQty" class="font-bold">0 kq</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span id="resSourceName">Yağlılıq Mənbəyi:</span>
-                                <span id="resSourceQty" class="font-bold text-yellow-300">0 kq</span>
-                            </div>
-                            <div id="resPowderRow" class="flex justify-between hidden">
-                                <span>Quru Süd:</span>
-                                <span id="resPowderQty" class="font-bold">0 kq</span>
-                            </div>
+                            <span id="dryRes" class="text-sm font-bold text-blue-600"></span>
                         </div>
                         
-                        <div class="mt-4 pt-4 border-t border-slate-600">
-                            <h4 class="text-xs uppercase text-slate-400 mb-2">Qablaşma</h4>
-                            <div id="resPkgList" class="text-xs space-y-1 text-slate-300"></div>
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mt-4 space-y-3">
+                             <h4 class="text-xs font-bold text-blue-800 uppercase">İstehsal Ediləcək Məhsul</h4>
+                             <select id="mainProdSelect" class="inp-field font-bold border-blue-300"></select>
+                             <div class="flex gap-4 items-center">
+                                 <div class="flex-1">
+                                     <span class="inp-label text-blue-800">Hazır Məhsul Sayı</span>
+                                     <input id="planCount" type="number" class="inp-field font-bold text-blue-600">
+                                 </div>
+                             </div>
                         </div>
+
+                        <button onclick="calcProd()" class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">Hesabla</button>
                     </div>
 
-                    <div class="mt-8">
-                        <p class="text-xs text-slate-400 mb-2 text-center">Təsdiqləsəniz stoklar azalacaq və tarixçəyə düşəcək.</p>
-                        <button onclick="commitProduction()" class="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition shadow-lg shadow-green-900/50">
-                            <i class="fas fa-play-circle mr-2"></i> İstehsalı Başlat
-                        </button>
+                    <div id="prodResult" class="hidden mt-6 bg-slate-800 text-white p-6 rounded-2xl">
+                        <h3 id="resProdName" class="font-bold text-xl text-yellow-400 mb-4 border-b border-slate-600 pb-2">-</h3>
+                        <div class="grid grid-cols-2 gap-y-2 text-sm mb-4">
+                            <span class="text-slate-400">Ümumi Kütlə:</span><span class="font-bold text-right" id="resTot">0</span>
+                            <span class="text-slate-400">Obrat:</span><span class="font-bold text-right" id="resBase">0</span>
+                            <span class="text-slate-400">Çiyə:</span><span class="font-bold text-right text-yellow-300" id="resCream">0</span>
+                            <span class="text-slate-400">Quru Süd:</span><span class="font-bold text-right" id="resDry">0</span>
+                        </div>
+                        <button onclick="commitProd()" class="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold shadow-lg">İstehsalı Təsdiqlə</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="panel-prod_history" class="panel space-y-6">
-            <h2 class="text-2xl font-bold text-slate-800">İstehsalat Tarixçəsi</h2>
-            <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                <table class="w-full text-sm text-left text-slate-600">
-                    <thead class="bg-green-50 text-xs uppercase font-bold text-green-700">
-                        <tr>
-                            <th class="p-4">Tarix</th>
-                            <th class="p-4">Məhsul</th>
-                            <th class="p-4 text-right">Miqdar (kq)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="prodHistoryBody">
-                        <tr><td colspan="3" class="p-4 text-center text-slate-400">Yüklənir...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+        <div id="panel-stock" class="panel">
+            <h3 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Xammal Anbarı</h3>
+            <div id="stockRaw" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8"></div>
+            <h3 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Hazır Məhsul Anbarı</h3>
+            <div id="stockProd" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"></div>
         </div>
 
-        <div id="panel-logs" class="panel space-y-6">
-            <h2 class="text-2xl font-bold text-slate-800">Ümumi Sistem Logları</h2>
-            <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                <table class="w-full text-sm text-left text-slate-600">
-                    <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500">
-                        <tr>
-                            <th class="p-4">Vaxt</th>
-                            <th class="p-4">Növ</th>
-                            <th class="p-4">Təfərrüat</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTableBody"></tbody>
-                </table>
+        <div id="panel-partners" class="panel">
+            <div class="flex gap-4 mb-6">
+                <button onclick="setPartnerTab('customers')" id="btnPartC" class="flex-1 py-3 rounded-xl font-bold transition shadow bg-blue-600 text-white">Müştərilər</button>
+                <button onclick="setPartnerTab('suppliers')" id="btnPartS" class="flex-1 py-3 rounded-xl font-bold transition bg-white text-gray-600 border hover:bg-gray-50">Təchizatçılar</button>
             </div>
+            <div class="card mb-6">
+                <div class="flex flex-wrap gap-4">
+                    <input id="ptName" placeholder="Ad" class="inp-field flex-1">
+                    <input id="ptPhone" placeholder="Əlaqə" class="inp-field w-40">
+                    <input id="ptAddr" placeholder="Ünvan" class="inp-field flex-1">
+                    <input id="ptCoords" placeholder="Lat,Lng" class="inp-field w-32">
+                    <button onclick="addPartner()" class="btn-primary">Əlavə Et</button>
+                </div>
+            </div>
+            <div id="partnersList" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div id="panel-invoices" class="panel">
+            <div class="flex gap-4 mb-6">
+                <button onclick="setInvType('purchase')" id="btnInvP" class="flex-1 py-3 border-2 border-green-500 bg-green-50 text-green-700 rounded-xl font-bold">Xammal Alışı</button>
+                <button onclick="setInvType('sale')" id="btnInvS" class="flex-1 py-3 border border-gray-200 bg-white text-gray-600 rounded-xl font-bold">Məhsul Satışı</button>
+            </div>
+            <div class="card mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                    <div class="md:col-span-2"><span class="inp-label">Tərəfdaş</span><select id="invPartner" class="inp-field font-bold"></select></div>
+                    <div class="md:col-span-2"><span class="inp-label">Mal / Məhsul</span><select id="invItem" class="inp-field font-bold"></select></div>
+                    <div id="divFat" class="hidden"><span class="inp-label text-orange-600">Yağlılıq %</span><input id="invFat" type="number" class="inp-field border-orange-300"></div>
+                    <div><span class="inp-label">Miqdar</span><input id="invQty" type="number" class="inp-field"></div>
+                    <div><span class="inp-label">Qiymət</span><input id="invPrice" type="number" class="inp-field"></div>
+                </div>
+                <div class="flex justify-between items-center mt-6 pt-4 border-t">
+                    <div class="text-2xl font-bold text-gray-800">Cəm: <span id="invTotal" class="text-blue-600">0.00</span> ₼</div>
+                    <button onclick="saveInvoice()" class="btn-primary px-8">Təsdiqlə</button>
+                </div>
+            </div>
+            <div class="card p-0 overflow-hidden"><table class="w-full text-sm text-left"><tbody id="invTable" class="divide-y"></tbody></table></div>
+        </div>
+
+        <div id="panel-logs" class="panel">
+            <div class="card p-0 overflow-hidden"><table class="w-full text-sm text-left"><tbody id="logsTable" class="divide-y"></tbody></table></div>
         </div>
 
     </main>
 
-    <div id="stockModal" class="fixed inset-0 modal-bg z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fade">
-            <div class="bg-slate-800 p-4 text-white flex justify-between items-center">
-                <h3 class="font-bold">Stok Əməliyyatı</h3>
-                <button onclick="closeStockModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Məhsul</label>
-                    <select id="modalStockType" class="w-full p-2 border rounded font-bold bg-slate-50"></select>
-                </div>
-                <div id="modalFatGroup">
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Yağlılıq (%)</label>
-                    <input type="number" id="modalStockFat" class="w-full p-2 border rounded font-bold" placeholder="Məs: 50">
-                </div>
-                <div class="flex gap-2 bg-slate-100 p-1 rounded-lg">
-                    <button onclick="setModalMode('add')" id="modeAdd" class="flex-1 py-1 rounded-md text-sm font-bold bg-white shadow text-green-700">Mədaxil (+)</button>
-                    <button onclick="setModalMode('waste')" id="modeWaste" class="flex-1 py-1 rounded-md text-sm font-bold text-slate-500">Tullantı (-)</button>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Miqdar (kq)</label>
-                    <input type="number" id="modalStockQty" class="w-full p-2 border rounded font-bold text-lg" placeholder="0">
-                </div>
-                <button onclick="commitStockChange()" class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Yadda Saxla</button>
+    <div id="editModal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-2xl w-96 shadow-2xl space-y-3">
+            <h3 class="font-bold text-lg">Düzəliş Et</h3>
+            <input type="hidden" id="editId"><input type="hidden" id="editType">
+            <div id="editFields" class="space-y-3"></div>
+            <div class="flex gap-2 justify-end pt-2">
+                <button onclick="document.getElementById('editModal').classList.add('hidden')" class="px-4 py-2 bg-gray-100 rounded text-gray-600">Ləğv</button>
+                <button onclick="saveEdit()" class="btn-primary">Yadda Saxla</button>
             </div>
         </div>
     </div>
+    <div id="prodCatModal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-2xl w-96 shadow-2xl space-y-3">
+            <h3 class="font-bold text-lg">Tənzimləmələr</h3>
+            <select id="pCatType" class="inp-field"><option value="raw">Xammal Kat</option><option value="prod">Məhsul Kat</option><option value="type" class="text-blue-600 font-bold">Məhsul Növləri (İstehsal)</option></select>
+            <input id="pCatName" placeholder="Ad" class="inp-field">
+            <button onclick="addProductCat()" class="btn-primary w-full">Əlavə Et</button>
+            <div id="pCatListDisplay" class="mt-4 max-h-48 overflow-y-auto space-y-2 border-t pt-2"></div>
+            <button onclick="document.getElementById('prodCatModal').classList.add('hidden')" class="w-full bg-gray-100 py-2 rounded">Bağla</button>
+        </div>
+    </div>
+    <div id="catModal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-2xl w-96 shadow-2xl space-y-3">
+            <h3 class="font-bold">Kassa Kat</h3>
+            <div class="flex gap-2"><select id="newCatType" class="inp-field w-24"><option value="in">Giriş</option><option value="out">Çıxış</option></select><input id="newCatName" placeholder="Ad" class="inp-field flex-1"><button onclick="addCat()" class="btn-primary">+</button></div>
+            <div id="catListDisplay" class="max-h-48 overflow-y-auto space-y-2"></div>
+            <button onclick="document.getElementById('catModal').classList.add('hidden')" class="w-full bg-gray-100 py-2 rounded">Bağla</button>
+        </div>
+    </div>
+    <div id="wasteModal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-2xl w-80 shadow-2xl border-t-4 border-red-500">
+            <h3 class="font-bold text-red-600 mb-2">Tullantı</h3>
+            <p id="wasteTargetName" class="text-sm text-gray-500 mb-4 font-bold"></p>
+            <input id="wasteQty" type="number" placeholder="Miqdar" class="inp-field mb-4">
+            <div class="flex justify-end gap-2"><button onclick="document.getElementById('wasteModal').classList.add('hidden')" class="px-4 py-2 bg-gray-100 rounded">Ləğv</button><button onclick="confirmWaste()" class="px-4 py-2 bg-red-600 text-white rounded">Sil</button></div>
+        </div>
+    </div>
+    <div id="toast" class="fixed top-20 right-5 px-6 py-4 rounded-xl shadow-2xl text-white font-bold transition-all duration-300 translate-x-full opacity-0 z-50 flex items-center gap-3"></div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set, push, update, get } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, push, update, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBbP8iq9MB6th3ETqbd5MdTVy3F7c6OOE4",
-            authDomain: "serme-erp.firebaseapp.com",
-            databaseURL: "https://serme-erp-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "serme-erp",
-            storageBucket: "serme-erp.firebasestorage.app",
-            messagingSenderId: "376057915689",
-            appId: "1:376057915689:web:f1bcdf2edb889963082f38"
-        };
-
+        const firebaseConfig = { apiKey: "AIzaSyBbP8iq9MB6th3ETqbd5MdTVy3F7c6OOE4", authDomain: "serme-erp.firebaseapp.com", databaseURL: "https://serme-erp-default-rtdb.europe-west1.firebasedatabase.app", projectId: "serme-erp", storageBucket: "serme-erp.firebasestorage.app", messagingSenderId: "376057915689", appId: "1:376057915689:web:f1bcdf2edb889963082f38" };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let stocks = {};
-        let currentModalMode = 'add';
+        let DATA = { raw:{}, products:{}, stock:{}, productStock:{}, cash:{}, cashCats:{}, prodCats:{}, prodTypes:{}, partners:{}, invoices:{}, logs:{} };
+        let activeProdTab = 'raw';
+        let activePartnerTab = 'customers';
+        let activeInvType = 'purchase';
+        let map;
         let prodMethod = 'A';
-        let prodCalculation = null;
 
-        const STOCK_TYPES = {
-            'milk': { label: 'Üzlü Süd', unit: 'kq', icon: 'fa-glass-water', color: 'blue' },
-            'cream_own': { label: 'Daxili Çiyə', unit: 'kq', icon: 'fa-cheese', color: 'yellow' },
-            'cream_buy': { label: 'Kənar Çiyə', unit: 'kq', icon: 'fa-cart-flatbed', color: 'orange' },
-            'butter': { label: 'Kərə Yağı', unit: 'kq', icon: 'fa-cube', color: 'amber' },
-            'skim': { label: 'Obrat (Üzsüz)', unit: 'kq', icon: 'fa-droplet', color: 'slate' },
-            'powder': { label: 'Quru Süd', unit: 'kq', icon: 'fa-snowflake', color: 'gray' }
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initDB();
-            initUI();
-        });
-
+        window.onload = () => { initMap(); initDB(); nav('dashboard'); };
         function initDB() {
-            const stockRef = ref(db, 'stocks');
-            onValue(stockRef, (snapshot) => {
-                const val = snapshot.val();
-                if (val) {
-                    stocks = val;
-                    // Məcburi: Əgər Obrat gəlirsə, onun yağlılığını 0 et.
-                    if(stocks['skim']) stocks['skim'].fat = 0;
-                    
-                    renderStocks();
-                    updateDropdowns();
-                    if(stocks['milk'] && stocks['milk'].fat > 0) {
-                        document.getElementById('sepInputFat').value = stocks['milk'].fat;
-                    }
-                    
-                    document.getElementById('dbStatus').innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> ONLINE';
-                    document.getElementById('dbStatus').classList.replace('text-orange-400', 'text-green-600');
-                } else {
-                    Object.keys(STOCK_TYPES).forEach(key => { if (!stocks[key]) stocks[key] = { qty: 0, fat: 0 }; });
-                    renderStocks();
-                }
-            });
-
-            const logsRef = ref(db, 'logs');
-            onValue(logsRef, (snapshot) => { renderLogs(snapshot.val()); });
-
-            // YENİ: İstehsalat tarixçəsini ayrıca oxu
-            const prodHistRef = ref(db, 'production_history');
-            onValue(prodHistRef, (snapshot) => { renderProductionHistory(snapshot.val()); });
+            const map = { 'raw_defs':'raw', 'prod_defs':'products', 'stock':'stock', 'prod_stock':'productStock', 'cash':'cash', 'cash_cats':'cashCats', 'prod_cats':'prodCats', 'prod_types':'prodTypes', 'customers':'customers', 'suppliers':'suppliers', 'invoices':'invoices', 'logs':'logs' };
+            Object.keys(map).forEach(key => onValue(ref(db, key), s => {
+                const val = s.val() || {};
+                if(key==='customers'||key==='suppliers') { if(!DATA.partners) DATA.partners={}; DATA.partners[key]=val; }
+                else DATA[map[key]] = val;
+                refreshUI();
+            }));
         }
 
-        function initUI() {
-            const modalSelect = document.getElementById('modalStockType');
-            modalSelect.innerHTML = '';
-            Object.keys(STOCK_TYPES).forEach(k => {
-                modalSelect.innerHTML += `<option value="${k}">${STOCK_TYPES[k].label}</option>`;
-            });
-            addPkgRow();
-        }
-
-        function renderStocks() {
-            const container = document.getElementById('stockContainer');
-            container.innerHTML = '';
-            Object.keys(STOCK_TYPES).forEach(key => {
-                const data = stocks[key] || { qty: 0, fat: 0 };
-                const def = STOCK_TYPES[key];
-                // Obrat üçün heç vaxt yağ göstərmə (həmişə 0)
-                let fatHtml = (data.fat > 0 && key !== 'skim') ? `<span class="bg-${def.color}-100 text-${def.color}-700 text-xs px-2 py-1 rounded-full font-bold">${data.fat}% Yağ</span>` : '';
-                
-                container.innerHTML += `
-                    <div class="stock-card bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between h-32 cursor-pointer" onclick="openStockModal('add', '${key}')">
-                        <div class="flex justify-between items-start">
-                            <div><h4 class="text-xs font-bold uppercase text-slate-500">${def.label}</h4><div class="mt-1">${fatHtml}</div></div>
-                            <div class="w-8 h-8 rounded-lg bg-${def.color}-50 text-${def.color}-600 flex items-center justify-center"><i class="fas ${def.icon}"></i></div>
-                        </div>
-                        <div><div class="text-2xl font-bold text-slate-800">${parseFloat(data.qty).toFixed(1)} <span class="text-sm text-slate-400">${def.unit}</span></div></div>
-                    </div>`;
-            });
-            document.getElementById('sepStockDisplay').innerText = (stocks['milk']?.qty || 0).toFixed(1);
-        }
-
-        function updateDropdowns() {
-            const srcSelect = document.getElementById('prodFatSource');
-            srcSelect.innerHTML = '';
-            ['cream_own', 'cream_buy', 'butter', 'milk'].forEach(key => {
-                const s = stocks[key];
-                if (s && s.qty > 0) srcSelect.innerHTML += `<option value="${key}" data-fat="${s.fat}">${STOCK_TYPES[key].label} (${s.fat}%) - Stok: ${s.qty}kq</option>`;
-            });
-            if(srcSelect.innerHTML === '') srcSelect.innerHTML = '<option disabled>Stokda yağ mənbəyi yoxdur</option>';
-
-            const baseSelect = document.getElementById('prodBaseStock');
-            baseSelect.innerHTML = '';
-            ['skim', 'milk'].forEach(key => {
-                const s = stocks[key];
-                let f = (key === 'skim') ? 0 : (s?.fat || 0);
-                baseSelect.innerHTML += `<option value="${key}" data-fat="${f}">${STOCK_TYPES[key].label} (${f}%) - Stok: ${s?.qty || 0}kq</option>`;
-            });
-        }
-
-        window.calculateMaxPossible = function() {
-            const tFat = parseFloat(document.getElementById('prodTargetFat').value);
-            const sourceSelect = document.getElementById('prodFatSource');
-            const sourceKey = sourceSelect.value;
-            const sFat = parseFloat(sourceSelect.options[sourceSelect.selectedIndex]?.dataset.fat || 0);
-            
-            const bKey = 'skim';
-            const bFat = 0; // OBRAT HƏMİŞƏ 0%
-            
-            const stockSource = stocks[sourceKey]?.qty || 0;
-            const stockBase = stocks[bKey]?.qty || 0;
-
-            if(!tFat || tFat <= bFat || tFat >= sFat) return showToast("Hədəf yağ düzgün deyil", "error");
-            if(stockSource <= 0) return showToast("Yağ mənbəyi stoku bitib", "error");
-            if(stockBase <= 0) return showToast("Obrat stoku bitib", "error");
-
-            const limitBySource = (stockSource * (sFat - bFat)) / (tFat - bFat);
-            const limitByBase = (stockBase * (sFat - bFat)) / (sFat - tFat);
-            
-            let maxQty = Math.min(limitBySource, limitByBase);
-            
-            document.getElementById('prodTargetQty').value = Math.floor(maxQty);
-            updatePowderLabel();
-            calcPkgTotal();
-            showToast(`Maksimum potensial: ${Math.floor(maxQty)} kq`, "success");
-        };
-
-        window.updatePowderLabel = function() {
-            let qty = 0;
-            if(document.getElementById('methodA-inputs').classList.contains('hidden')) {
-                qty = parseFloat(document.getElementById('prodBaseQty').value) || 0;
-            } else {
-                qty = parseFloat(document.getElementById('prodTargetQty').value) || 0;
-            }
-
-            const lbl = document.getElementById('lblPowderCalc');
-            if(qty > 0) {
-                const req = (qty / 1000) * 15;
-                lbl.innerText = `(~${req.toFixed(2)} kq)`;
-            } else {
-                lbl.innerText = '';
-            }
-        };
-
-        // --- YENİLƏNMİŞ QABLAŞDIRMA SƏTRİ (KOMPAKT) ---
-        window.addPkgRow = function() {
-            const div = document.createElement('div');
-            // Gap-1, daha az boşluq
-            div.className = "flex gap-1 items-start mb-2 relative"; 
-            div.innerHTML = `
-                <select class="pkg-type flex-[2] pkg-input border rounded bg-white">
-                    <option>Vedrə</option><option>Banka</option><option>Paket</option>
-                </select>
-                
-                <div class="flex-[1.5] relative">
-                    <input type="number" class="pkg-size w-full pkg-input border rounded" placeholder="Qr" oninput="calcPkgTotal()">
-                    <div class="pkg-max-hint text-[9px] text-blue-500 absolute -bottom-3 left-0 w-full truncate font-bold leading-tight"></div>
-                </div>
-
-                <input type="number" class="pkg-count flex-[1.5] pkg-input border rounded" placeholder="Say" oninput="calcPkgTotal()">
-                
-                <button onclick="this.parentElement.remove(); calcPkgTotal()" class="text-red-500 w-8 h-[34px] flex items-center justify-center hover:bg-red-50 rounded">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            document.getElementById('pkgContainer').appendChild(div);
-        };
-
-        window.calcPkgTotal = function() {
-            let totalPkgKg = 0;
-            let listHtml = "";
-            const rows = document.querySelectorAll('#pkgContainer > div');
-            
-            rows.forEach(row => {
-                const size = parseFloat(row.querySelector('.pkg-size').value) || 0;
-                const count = parseFloat(row.querySelector('.pkg-count').value) || 0;
-                if(size > 0 && count > 0) {
-                    const rowKg = (size * count) / 1000;
-                    totalPkgKg += rowKg;
-                    const type = row.querySelector('.pkg-type').value;
-                    listHtml += `<div class="flex justify-between"><span>${type} ${size}qr x ${count}</span><span>${rowKg.toFixed(1)} kq</span></div>`;
-                }
-            });
-
-            let targetQty = parseFloat(document.getElementById('prodTargetQty').value);
-            if(!targetQty && prodCalculation) targetQty = prodCalculation.totalQty;
-            targetQty = targetQty || 0;
-
-            const residue = targetQty - totalPkgKg;
-
-            rows.forEach(row => {
-                const sizeInput = row.querySelector('.pkg-size');
-                const countInput = row.querySelector('.pkg-count');
-                const hintDiv = row.querySelector('.pkg-max-hint');
-                
-                const size = parseFloat(sizeInput.value) || 0;
-                const currentCount = parseFloat(countInput.value) || 0;
-                
-                if(size > 0 && targetQty > 0) {
-                    const currentUsedKg = (size * currentCount) / 1000;
-                    const availableForThisRow = residue + currentUsedKg;
-                    
-                    if(availableForThisRow > 0) {
-                        const maxCount = Math.floor((availableForThisRow * 1000) / size);
-                        hintDiv.innerText = `Max: ${maxCount} əd.`;
-                    } else {
-                        hintDiv.innerText = 'Limit!';
-                    }
-                } else {
-                    hintDiv.innerText = '';
-                }
-            });
-
-            const rEl = document.getElementById('pkgResidue');
-            rEl.innerText = `Qalıq: ${residue.toFixed(1)} kq`;
-            rEl.className = residue < 0 ? "text-right mt-2 text-xs font-bold text-red-500" : "text-right mt-2 text-xs font-bold text-slate-400";
-            
-            if(document.getElementById('resPkgList')) document.getElementById('resPkgList').innerHTML = listHtml;
-        };
-
-        window.calculateProduction = function() {
-            const prodName = document.getElementById('prodName').value;
-            const targetFat = parseFloat(document.getElementById('prodTargetFat').value);
-            const sourceSelect = document.getElementById('prodFatSource');
-            const sourceKey = sourceSelect.value;
-            const sourceFat = parseFloat(sourceSelect.options[sourceSelect.selectedIndex]?.dataset.fat || 0);
-            const usePowder = document.getElementById('usePowder').checked;
-
-            if(!sourceKey || sourceFat <= 0) return showToast('Düzgün yağ mənbəyi seçilməyib', 'error');
-            if(!targetFat || targetFat <= 0) return showToast('Hədəf yağlılıq yazın', 'error');
-
-            let totalQty = 0;
-            let baseKey = 'skim';
-            let baseFat = 0; // OBRAT HƏMİŞƏ 0%
-            let reqBase = 0;
-            let reqSource = 0;
-            let reqPowder = 0;
-
-            if (prodMethod === 'A') {
-                totalQty = parseFloat(document.getElementById('prodTargetQty').value);
-                if (!totalQty) return showToast('Miqdar yazın', 'error');
-                if (usePowder) reqPowder = (totalQty / 1000) * 15;
-                const liquidMass = totalQty - reqPowder;
-                if (sourceFat <= targetFat) return showToast('Seçilən yağ mənbəyinin faizi hədəfdən çox olmalıdır!', 'error');
-                reqSource = liquidMass * (targetFat - baseFat) / (sourceFat - baseFat);
-                reqBase = liquidMass - reqSource;
-            } else {
-                const baseInputQty = parseFloat(document.getElementById('prodBaseQty').value);
-                if (!baseInputQty) return showToast('Əsas xammal miqdarı yazın', 'error');
-                const baseSelect = document.getElementById('prodBaseStock');
-                baseKey = baseSelect.value;
-                if(baseKey === 'skim') baseFat = 0; // Force 0
-                else baseFat = parseFloat(baseSelect.options[baseSelect.selectedIndex].dataset.fat || 0);
-                
-                if (sourceFat <= targetFat) return showToast('Seçilən yağ mənbəyinin faizi hədəfdən çox olmalıdır!', 'error');
-                reqSource = baseInputQty * (targetFat - baseFat) / (sourceFat - targetFat);
-                reqBase = baseInputQty;
-                const liquidTotal = reqBase + reqSource;
-                if (usePowder) reqPowder = (liquidTotal / 1000) * 15;
-                totalQty = liquidTotal + reqPowder;
-            }
-
-            const stockSource = stocks[sourceKey]?.qty || 0;
-            const stockBase = stocks[baseKey]?.qty || 0;
-            if (reqSource > stockSource) return showToast(`Stokda kifayət qədər ${STOCK_TYPES[sourceKey].label} yoxdur!`, 'error');
-            if (baseKey !== 'milk' && reqBase > stockBase) return showToast(`Stokda kifayət qədər ${STOCK_TYPES[baseKey].label} yoxdur!`, 'error');
-
-            prodCalculation = { prodName, totalQty, baseKey, reqBase, sourceKey, reqSource, reqPowder, targetFat };
-
-            document.getElementById('resProdName').innerText = `${prodName} (${targetFat}%)`;
-            document.getElementById('resTotalQty').innerText = totalQty.toFixed(2) + " kq";
-            document.getElementById('resBaseName').innerText = STOCK_TYPES[baseKey].label + ":";
-            document.getElementById('resBaseQty').innerText = reqBase.toFixed(2) + " kq";
-            document.getElementById('resSourceName').innerText = STOCK_TYPES[sourceKey].label + ":";
-            document.getElementById('resSourceQty').innerText = reqSource.toFixed(2) + " kq";
-            
-            if (reqPowder > 0) {
-                document.getElementById('resPowderRow').classList.remove('hidden');
-                document.getElementById('resPowderQty').innerText = reqPowder.toFixed(2) + " kq";
-            } else {
-                document.getElementById('resPowderRow').classList.add('hidden');
-            }
-            
-            calcPkgTotal();
-            document.getElementById('prodResultBox').classList.remove('hidden');
-        };
-
-        window.openStockModal = function(mode, preselectKey = null) {
-            currentModalMode = mode;
-            document.getElementById('stockModal').classList.remove('hidden');
-            if(preselectKey) document.getElementById('modalStockType').value = preselectKey;
-            
-            const modeAddBtn = document.getElementById('modeAdd');
-            const modeWasteBtn = document.getElementById('modeWaste');
-            const fatGroup = document.getElementById('modalFatGroup');
-
-            if (mode === 'add') {
-                modeAddBtn.classList.replace('text-slate-500', 'text-green-700');
-                modeAddBtn.classList.replace('bg-slate-100', 'bg-white');
-                modeWasteBtn.classList.replace('bg-white', 'bg-slate-100');
-                fatGroup.classList.remove('hidden'); 
-            } else {
-                fatGroup.classList.add('hidden');
-            }
-        };
-
-        window.setModalMode = function(mode) {
-            currentModalMode = mode;
-            const modeAddBtn = document.getElementById('modeAdd');
-            const modeWasteBtn = document.getElementById('modeWaste');
-            const fatGroup = document.getElementById('modalFatGroup');
-
-            if(mode === 'add') {
-                modeAddBtn.className = "flex-1 py-1 rounded-md text-sm font-bold bg-white shadow text-green-700";
-                modeWasteBtn.className = "flex-1 py-1 rounded-md text-sm font-bold text-slate-500";
-                fatGroup.classList.remove('hidden');
-            } else {
-                modeWasteBtn.className = "flex-1 py-1 rounded-md text-sm font-bold bg-white shadow text-red-700";
-                modeAddBtn.className = "flex-1 py-1 rounded-md text-sm font-bold text-slate-500";
-                fatGroup.classList.add('hidden');
-            }
-        };
-
-        window.closeStockModal = function() {
-            document.getElementById('stockModal').classList.add('hidden');
-            document.getElementById('modalStockQty').value = '';
-            document.getElementById('modalStockFat').value = '';
-        };
-
-        window.commitStockChange = function() {
-            const type = document.getElementById('modalStockType').value;
-            const qty = parseFloat(document.getElementById('modalStockQty').value);
-            const inputFat = parseFloat(document.getElementById('modalStockFat').value);
-            
-            if (!qty || qty <= 0) return showToast('Miqdar düzgün deyil', 'error');
-
-            const current = stocks[type] || { qty: 0, fat: 0 };
-            let newQty = current.qty;
-            let newFat = current.fat;
-
-            if (currentModalMode === 'add') {
-                // Əgər obratdırsa fat hesablama, 0 saxla
-                if (type !== 'skim' && current.qty > 0 && inputFat && inputFat !== current.fat) {
-                    const totalFatMass = (current.qty * current.fat) + (qty * inputFat);
-                    newQty = current.qty + qty;
-                    newFat = parseFloat((totalFatMass / newQty).toFixed(2));
-                } else {
-                    newQty += qty;
-                    if(type !== 'skim' && inputFat) newFat = inputFat;
-                    else if(type === 'skim') newFat = 0;
-                }
-                logAction('Mədaxil', `${STOCK_TYPES[type].label}: +${qty}kq (${type === 'skim' ? 0 : (inputFat || newFat)}%)`);
-            } else {
-                if (qty > current.qty) return showToast('Stokda kifayət qədər məhsul yoxdur', 'error');
-                newQty -= qty;
-                logAction('Tullantı', `${STOCK_TYPES[type].label}: -${qty}kq (İtki)`);
-            }
-
-            update(ref(db, `stocks/${type}`), { qty: newQty, fat: newFat })
-                .then(() => { showToast('Stok yeniləndi', 'success'); closeStockModal(); });
-        };
-
-        let separatorCalcData = null;
-        window.calculateSeparator = function() {
-            const milkQty = parseFloat(document.getElementById('sepInputMilk').value);
-            const milkFat = parseFloat(document.getElementById('sepInputFat').value);
-            const loss = parseFloat(document.getElementById('sepInputLoss').value) || 0;
-            const creamQty = parseFloat(document.getElementById('sepOutputCream').value);
-            const currentStock = stocks['milk']?.qty || 0;
-
-            if (!milkQty || !creamQty) return showToast('Məlumatları tam daxil edin', 'error');
-            if (milkQty > currentStock) return showToast('Stokda bu qədər süd yoxdur!', 'error');
-
-            const skimQty = milkQty - creamQty - loss;
-            const totalFatIn = (milkQty * milkFat) / 100;
-            const fatInSkim = 0; // OBRAT YAĞLILIĞI HƏMİŞƏ 0
-            let creamFat = ((totalFatIn - fatInSkim) / creamQty) * 100;
-            if (creamFat > 100 || creamFat < 0) creamFat = 0;
-
-            separatorCalcData = { milkUsed: milkQty, creamAdd: creamQty, creamFat: parseFloat(creamFat.toFixed(2)), skimAdd: skimQty, loss: loss };
-
-            document.getElementById('sepResCreamFat').innerText = creamFat.toFixed(2) + "%";
-            document.getElementById('sepResSkimQty').innerText = skimQty.toFixed(2) + " kq";
-            document.getElementById('sepResultBox').classList.remove('hidden');
-        };
-
-        window.commitSeparator = function() {
-            if(!separatorCalcData) return;
-            const updates = {};
-            const curMilk = stocks['milk'] || {qty:0, fat:0};
-            updates['stocks/milk/qty'] = curMilk.qty - separatorCalcData.milkUsed;
-
-            const curCream = stocks['cream_own'] || {qty:0, fat:0};
-            const newCreamQty = curCream.qty + separatorCalcData.creamAdd;
-            const totalCreamFat = (curCream.qty * curCream.fat) + (separatorCalcData.creamAdd * separatorCalcData.creamFat);
-            const newCreamFat = newCreamQty > 0 ? (totalCreamFat / newCreamQty) : 0;
-            
-            updates['stocks/cream_own'] = { qty: newCreamQty, fat: parseFloat(newCreamFat.toFixed(2)) };
-            const curSkim = stocks['skim'] || {qty:0, fat:0};
-            updates['stocks/skim'] = { qty: curSkim.qty + separatorCalcData.skimAdd, fat: 0 }; // HƏMİŞƏ 0
-
-            update(ref(db), updates).then(() => {
-                logAction('Seperasiya', `Süd: -${separatorCalcData.milkUsed}kq > Çiyə: +${separatorCalcData.creamAdd}kq`);
-                showToast('Seperasiya tamamlandı', 'success');
-                document.getElementById('sepResultBox').classList.add('hidden');
-            });
-        };
-
-        window.setProdMethod = function(m) {
-            prodMethod = m;
-            document.getElementById('btnMethodA').className = m === 'A' ? "flex-1 py-3 px-4 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-bold transition" : "flex-1 py-3 px-4 rounded-xl border-2 border-transparent bg-white text-slate-600 font-bold hover:bg-slate-50 transition";
-            document.getElementById('btnMethodB').className = m === 'B' ? "flex-1 py-3 px-4 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-bold transition" : "flex-1 py-3 px-4 rounded-xl border-2 border-transparent bg-white text-slate-600 font-bold hover:bg-slate-50 transition";
-            
-            if(m === 'A') {
-                document.getElementById('methodA-inputs').classList.remove('hidden');
-                document.getElementById('methodB-inputs').classList.add('hidden');
-            } else {
-                document.getElementById('methodA-inputs').classList.add('hidden');
-                document.getElementById('methodB-inputs').classList.remove('hidden');
-            }
-            document.getElementById('prodResultBox').classList.add('hidden');
-            updatePowderLabel();
-        };
-
-        window.commitProduction = function() {
-            if (!prodCalculation) return;
-            const updates = {};
-            const curBase = stocks[prodCalculation.baseKey] || {qty:0};
-            updates[`stocks/${prodCalculation.baseKey}/qty`] = curBase.qty - prodCalculation.reqBase;
-            const curSource = stocks[prodCalculation.sourceKey] || {qty:0};
-            updates[`stocks/${prodCalculation.sourceKey}/qty`] = curSource.qty - prodCalculation.reqSource;
-            if (prodCalculation.reqPowder > 0) {
-                const curPow = stocks['powder'] || {qty:0};
-                updates[`stocks/powder/qty`] = curPow.qty - prodCalculation.reqPowder;
-            }
-            
-            // YENİ: İstehsalat Tarixçəsinə yaz
-            const newProdKey = push(ref(db, 'production_history')).key;
-            updates[`production_history/${newProdKey}`] = {
-                date: Date.now(),
-                name: prodCalculation.prodName,
-                qty: parseFloat(prodCalculation.totalQty.toFixed(2)),
-                fat: prodCalculation.targetFat
-            };
-
-            update(ref(db), updates).then(() => {
-                logAction('İstehsal', `${prodCalculation.prodName} (${prodCalculation.totalQty.toFixed(1)}kq) istehsal edildi.`);
-                showToast('İstehsal təsdiqləndi', 'success');
-                document.getElementById('prodResultBox').classList.add('hidden');
-            });
-        };
-
-        function renderProductionHistory(data) {
-            const tbody = document.getElementById('prodHistoryBody');
-            if (!data) { tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-400">Tarixçə yoxdur</td></tr>'; return; }
-            const list = Object.values(data).sort((a,b) => b.date - a.date);
-            let html = '';
-            list.forEach(item => {
-                const date = new Date(item.date).toLocaleString('az-AZ');
-                html += `
-                    <tr class="border-b border-slate-100 hover:bg-slate-50">
-                        <td class="p-4 text-slate-500">${date}</td>
-                        <td class="p-4 font-bold text-slate-700">${item.name} <span class="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">${item.fat}%</span></td>
-                        <td class="p-4 text-right font-mono font-bold">${item.qty}</td>
-                    </tr>`;
-            });
-            tbody.innerHTML = html;
-        }
-
-        window.showPanel = function(id) {
+        window.nav = (id) => {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + id).classList.add('active');
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('nav-' + id).classList.add('active');
+            document.getElementById(`panel-${id}`).classList.add('active');
+            document.querySelectorAll('.nav-pill').forEach(i => i.classList.remove('active'));
+            document.getElementById(`nav-${id}`).classList.add('active');
+            refreshUI();
         };
 
-        function renderLogs(data) {
-            const tbody = document.getElementById('logsTableBody');
-            if (!data) { tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-400">Tarixçə yoxdur</td></tr>'; return; }
-            const logs = Object.values(data).sort((a,b) => b.timestamp - a.timestamp).slice(0, 50);
-            let html = '';
-            logs.forEach(log => {
-                const date = new Date(log.timestamp).toLocaleString('az-AZ');
-                html += `<tr class="border-b border-slate-100 hover:bg-slate-50"><td class="p-4 text-xs text-slate-500">${date}</td><td class="p-4 font-bold text-slate-700">${log.type}</td><td class="p-4">${log.details}</td></tr>`;
+        function refreshUI() {
+            renderDashboard(); renderCash(); renderProdDB(); renderStock();
+            renderPartners(); renderInvForm(); renderProductionUI();
+            renderCats(); renderProdConfig(); renderLogs();
+        }
+
+        // --- EDIT LOGIC ---
+        window.editItem = (type, id) => {
+            const item = (type === 'raw') ? DATA.raw[id] : DATA.products[id];
+            document.getElementById('editId').value = id;
+            document.getElementById('editType').value = type;
+            const fields = document.getElementById('editFields');
+            
+            let html = `<div><span class="inp-label">Ad</span><input id="eName" value="${item.name}" class="inp-field"></div>`;
+            html += `<div><span class="inp-label">Kateqoriya</span><input id="eCat" value="${item.cat||''}" class="inp-field"></div>`;
+            
+            if(type === 'finished') {
+                html += `<div><span class="inp-label">Qablaşma</span><input id="ePkg" value="${item.pkg||''}" class="inp-field"></div>`;
+                html += `<div><span class="inp-label">Qiymət</span><input id="ePrice" value="${item.price||''}" type="number" class="inp-field"></div>`;
+            }
+            fields.innerHTML = html;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        window.saveEdit = () => {
+            const id = document.getElementById('editId').value;
+            const type = document.getElementById('editType').value;
+            const path = type === 'raw' ? 'raw_defs' : 'prod_defs';
+            
+            const updates = { name: document.getElementById('eName').value, cat: document.getElementById('eCat').value };
+            if(type === 'finished') {
+                updates.pkg = document.getElementById('ePkg').value;
+                updates.price = parseFloat(document.getElementById('ePrice').value);
+            }
+            
+            update(ref(db, `${path}/${id}`), updates);
+            document.getElementById('editModal').classList.add('hidden');
+            toast('Düzəliş edildi');
+        }
+
+        // --- NEW PRODUCTION LOGIC ---
+        function parseWeight(str) {
+            if(!str) return 0;
+            const clean = String(str).toLowerCase().replace(/\s/g, '');
+            const num = parseFloat(clean);
+            if(isNaN(num)) return 0;
+            if(clean.includes('kg') || clean.includes('kq')) return num;
+            if(clean.includes('gr') || clean.includes('qr') || clean.includes('g')) return num / 1000;
+            // If just number, assume grams
+            return num < 100 ? num : num / 1000; // Heuristic: if <100 assume kg/packs? No user said: "680 qram 680 kq yox". So purely:
+            return num / 1000; 
+        }
+
+        window.calcProd = () => {
+            const tFat = parseFloat(document.getElementById('targetFat').value);
+            const fKey = document.getElementById('fatSource').value;
+            if(!tFat || !fKey) return toast('Məlumatları doldurun', true);
+            const fVal = DATA.stock[fKey].fat;
+            const dry = parseFloat(document.getElementById('dryRes').innerText.replace(/[^0-9.]/g,''))||0;
+            let tot, c, b; const bFat = 0.05;
+            
+            if(prodMethod==='A') { 
+                tot = parseFloat(document.getElementById('totalQtyA').value); 
+                c = tot * (tFat - bFat) / (fVal - bFat); 
+                b = tot - c; 
+            } else { 
+                b = parseFloat(document.getElementById('baseQtyB').value); 
+                c = b * (tFat - bFat) / (fVal - tFat); 
+                tot = b + c; 
+            }
+            
+            document.getElementById('resTot').innerText = tot.toFixed(2);
+            document.getElementById('resBase').innerText = b.toFixed(2);
+            document.getElementById('resCream').innerText = c.toFixed(2);
+            document.getElementById('resDry').innerText = dry.toFixed(2);
+            
+            // Check product
+            const prodId = document.getElementById('mainProdSelect').value;
+            let prodName = "Sərbəst İstehsal";
+            if(prodId) {
+                prodName = DATA.products[prodId].name;
+                const count = parseFloat(document.getElementById('planCount').value) || 0;
+                if(count > 0) prodName += ` (${count} əd)`;
+            }
+
+            document.getElementById('resProdName').innerText = prodName;
+            document.getElementById('prodResult').classList.remove('hidden');
+            
+            window.tempProd = { name: prodName, tot, b, c, dry, fKey };
+        }
+
+        window.commitProd = () => {
+            const t = window.tempProd; 
+            const u = {};
+            const prodId = document.getElementById('mainProdSelect').value;
+            const count = parseFloat(document.getElementById('planCount').value) || 0;
+
+            const curC = DATA.stock[t.fKey]?.qty || 0;
+            if(curC < t.c) return toast('Qaymaq çatmır!', true);
+            u[`stock/${t.fKey}/qty`] = curC - t.c;
+            
+            const curO = DATA.stock['Obrat'] ? DATA.stock['Obrat'].qty : 9999;
+            u[`stock/Obrat/qty`] = curO - t.b;
+
+            if(prodId && count > 0) {
+                const curP = DATA.productStock[prodId]?.qty || 0;
+                u[`prod_stock/${prodId}/qty`] = curP + count;
+                logAction('İstehsal', `${t.name}: +${count} ədəd (${t.tot.toFixed(2)}kq)`);
+            } else {
+                logAction('İstehsal', `Sərbəst İstehsal: ${t.tot.toFixed(2)}kq kütlə.`);
+            }
+
+            update(ref(db), u);
+            document.getElementById('prodResult').classList.add('hidden');
+            toast('İstehsal Uğurlu');
+            document.getElementById('planCount').value = '';
+        }
+
+        // --- LOGS ---
+        function logAction(type, msg) { push(ref(db, 'logs'), { type, msg, time: Date.now() }); }
+        function renderLogs() {
+            const t = document.getElementById('logsTable'); t.innerHTML = '';
+            if(!DATA.logs) return;
+            Object.values(DATA.logs).sort((a,b)=>b.time-a.time).slice(0,50).forEach(l => {
+                t.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="p-4 text-gray-400 text-xs">${new Date(l.time).toLocaleString()}</td><td class="p-4 font-bold text-gray-700">${l.type}</td><td class="p-4 text-gray-600">${l.msg}</td></tr>`;
             });
-            tbody.innerHTML = html;
         }
 
-        function logAction(type, details) { push(ref(db, 'logs'), { type: type, details: details, timestamp: Date.now() }); }
-        function showToast(msg, type) {
-            const t = document.getElementById('toast');
-            t.className = `fixed top-5 right-5 z-50 transform transition-all duration-300 px-6 py-3 rounded shadow-lg font-bold text-white ${type==='error'?'bg-red-500':'bg-green-500'}`;
-            t.innerText = msg;
-            t.classList.remove('translate-x-full', 'opacity-0');
-            setTimeout(() => t.classList.add('translate-x-full', 'opacity-0'), 3000);
+        // --- Standard ---
+        window.setMethod = (m) => {
+            prodMethod = m;
+            document.getElementById('btnMetA').className = m==='A' ? "flex-1 py-2 rounded-md text-sm font-bold bg-white text-blue-700 shadow-sm transition" : "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-700 transition";
+            document.getElementById('btnMetB').className = m==='B' ? "flex-1 py-2 rounded-md text-sm font-bold bg-white text-blue-700 shadow-sm transition" : "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-700 transition";
+            document.getElementById('inputsA').classList.toggle('hidden', m!=='A');
+            document.getElementById('inputsB').classList.toggle('hidden', m!=='B');
+        };
+
+        window.calcSep = () => {
+            const mKey = document.getElementById('sepMilkSource').value;
+            const qty = parseFloat(document.getElementById('sepInputQty').value);
+            const outC = parseFloat(document.getElementById('sepCreamOut').value);
+            const loss = parseFloat(document.getElementById('sepLoss').value)||0;
+            if(!mKey || !qty || !outC) return;
+            const fat = DATA.stock[mKey].fat;
+            document.getElementById('sepFat').value = fat;
+            const skimQty = qty - outC - loss;
+            if(skimQty < 0) return toast('Mənfi kütlə xətası', true);
+            const totalFatIn = qty * (fat/100);
+            const resFat = (totalFatIn / outC) * 100;
+            document.getElementById('resCreamFat').innerText = resFat.toFixed(2)+'%';
+            document.getElementById('resSkimQty').innerText = skimQty.toFixed(2)+' kq';
+            document.getElementById('resLossQty').innerText = loss.toFixed(2)+' kq';
+            document.getElementById('sepResult').classList.remove('hidden');
+            window.tempSep = { mKey, qty, outC, skimQty, resFat, loss };
+        }
+        window.commitSep = () => {
+            const t = window.tempSep;
+            const curM = DATA.stock[t.mKey].qty;
+            if(curM < t.qty) return toast('Süd çatmır', true);
+            const u = {};
+            u[`stock/${t.mKey}/qty`] = curM - t.qty;
+            const cKey = 'Öz istehsalımız olan çiyə';
+            const curC = DATA.stock[cKey] || {qty:0, fat:0};
+            const newCQty = curC.qty + t.outC;
+            const newCFat = ((curC.qty*curC.fat) + (t.outC*t.resFat)) / newCQty;
+            u[`stock/${cKey}`] = { qty: newCQty, fat: Number(newCFat.toFixed(2)) };
+            const sKey = 'Üzsüz süd (obrat)';
+            const curS = DATA.stock[sKey] || {qty:0, fat:0};
+            u[`stock/${sKey}`] = { qty: curS.qty + t.skimQty, fat: 0 };
+            logAction('Seperator', `${t.qty}kq Süd -> ${t.outC}kq Çiyə, ${t.skimQty}kq Obrat.`);
+            update(ref(db), u);
+            document.getElementById('sepResult').classList.add('hidden');
+            toast('Seperasiya Bitdi');
         }
 
-        window.openStockModal = openStockModal;
-        window.setModalMode = setModalMode;
-        window.closeStockModal = closeStockModal;
-        window.commitStockChange = commitStockChange;
-        window.calculateSeparator = calculateSeparator;
-        window.commitSeparator = commitSeparator;
-        window.setProdMethod = setProdMethod;
-        window.calculateProduction = calculateProduction;
-        window.commitProduction = commitProduction;
-        window.showPanel = showPanel;
-        window.addPkgRow = addPkgRow;
-        window.calcPkgTotal = calcPkgTotal;
-        window.calculateMaxPossible = calculateMaxPossible;
-        window.updatePowderLabel = updatePowderLabel;
+        window.setPartnerTab = (t) => {
+            activePartnerTab = t;
+            const btnC = document.getElementById('btnPartC');
+            const btnS = document.getElementById('btnPartS');
+            if(t === 'customers') {
+                btnC.className = "flex-1 py-3 rounded-xl font-bold transition shadow bg-blue-600 text-white";
+                btnS.className = "flex-1 py-3 rounded-xl font-bold transition bg-white text-gray-600 border hover:bg-gray-50";
+            } else {
+                btnC.className = "flex-1 py-3 rounded-xl font-bold transition bg-white text-gray-600 border hover:bg-gray-50";
+                btnS.className = "flex-1 py-3 rounded-xl font-bold transition shadow bg-blue-600 text-white";
+            }
+            renderPartners();
+        }
+
+        function renderPartners() {
+            const list = document.getElementById('partnersList'); list.innerHTML='';
+            const source = activePartnerTab === 'customers' ? (DATA.partners.customers || {}) : (DATA.partners.suppliers || {});
+            Object.entries(source).forEach(([k,v]) => {
+                list.innerHTML += `<div class="card p-4 relative group hover:shadow-md transition"><div class="font-bold text-lg text-gray-800">${v.name}</div><div class="text-gray-500 text-sm flex items-center gap-2 mt-1"><i class="fas fa-phone text-xs"></i> ${v.phone}</div><div class="text-xs text-gray-400 mt-2 border-t pt-2">${v.addr}</div><button onclick="del('${activePartnerTab}','${k}')" class="absolute top-3 right-3 text-red-400 opacity-0 group-hover:opacity-100 transition"><i class="fas fa-trash"></i></button></div>`;
+            });
+        }
+
+        function renderProductionUI() {
+            const mSel = document.getElementById('mainProdSelect'); mSel.innerHTML='<option value="">Seçin...</option>';
+            Object.entries(DATA.products).forEach(([k,v]) => mSel.innerHTML+=`<option value="${k}">${v.name} (${v.pkg})</option>`);
+            const sMilk = document.getElementById('sepMilkSource'); sMilk.innerHTML='';
+            Object.entries(DATA.stock).forEach(([k,v]) => { if(k.toLowerCase().includes('süd') && v.qty>0) sMilk.innerHTML+=`<option value="${k}">${k} (${v.qty}kg, ${v.fat}%)</option>`; });
+            const fSel = document.getElementById('fatSource'); fSel.innerHTML='';
+            const bSel = document.getElementById('baseSourceB'); bSel.innerHTML='';
+            Object.entries(DATA.stock).forEach(([k,v]) => { if(v.qty>0) { fSel.innerHTML+=`<option value="${k}">${k} (${v.fat}%)</option>`; bSel.innerHTML+=`<option value="${k}">${k} (${v.fat}%)</option>`; } });
+        }
+
+        window.updateDryMilk = () => {
+            const rate = parseInt(document.getElementById('dryRate').value);
+            let base = prodMethod==='A' ? (parseFloat(document.getElementById('totalQtyA').value)||0) : (parseFloat(document.getElementById('baseQtyB').value)||0);
+            const needed = document.getElementById('useDryMilk').checked ? (base/1000)*rate : 0;
+            document.getElementById('dryRes').innerText = needed > 0 ? `Tələb: ${needed.toFixed(2)} kg` : '';
+        }
+
+        // Standard Helpers
+        window.toast = (m,e) => { const t=document.getElementById('toast'); t.innerHTML=`<i class="fas ${e?'fa-exclamation-triangle':'fa-check-circle'}"></i> ${m}`; t.className=`fixed top-20 right-5 px-6 py-4 rounded-xl shadow-2xl text-white font-bold transition-all duration-300 ${e?'bg-red-500':'bg-green-600'} z-50 flex items-center gap-3`; t.classList.remove('translate-x-full','opacity-0'); setTimeout(()=>t.classList.add('translate-x-full','opacity-0'), 3000); }
+        function initMap() { if(document.getElementById('map')) { map=L.map('map').setView([40.4093, 49.8671], 10); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); } }
+        window.setInvType = (t) => { activeInvType = t; const pBtn=document.getElementById('btnInvP'); const sBtn=document.getElementById('btnInvS'); if(t==='purchase'){ pBtn.className="flex-1 py-3 border-2 border-green-500 bg-green-50 text-green-700 rounded-xl font-bold transition"; sBtn.className="flex-1 py-3 border border-gray-200 bg-white text-gray-600 rounded-xl font-bold transition hover:bg-gray-50"; document.getElementById('divFat').classList.remove('hidden'); } else { pBtn.className="flex-1 py-3 border border-gray-200 bg-white text-gray-600 rounded-xl font-bold transition hover:bg-gray-50"; sBtn.className="flex-1 py-3 border-2 border-blue-500 bg-blue-50 text-blue-700 rounded-xl font-bold transition"; document.getElementById('divFat').classList.add('hidden'); } renderInvForm(); }
+        function renderInvForm() { const pSel=document.getElementById('invPartner'); pSel.innerHTML=''; const iSel=document.getElementById('invItem'); iSel.innerHTML=''; const pSrc=activeInvType==='purchase'?(DATA.partners.suppliers||{}):(DATA.partners.customers||{}); Object.values(pSrc).forEach(v=>pSel.innerHTML+=`<option>${v.name}</option>`); if(activeInvType==='purchase'){ Object.values(DATA.raw).forEach(v=>iSel.innerHTML+=`<option value="${v.name}">${v.name}</option>`); } else { Object.entries(DATA.products).forEach(([k,v])=>iSel.innerHTML+=`<option value="${k}">${v.name} (${v.pkg})</option>`); } }
+        window.saveInvoice = () => { const partner=document.getElementById('invPartner').value; const itemVal=document.getElementById('invItem').value; const itemName=document.getElementById('invItem').options[document.getElementById('invItem').selectedIndex]?.text; const qty=parseFloat(document.getElementById('invQty').value); const price=parseFloat(document.getElementById('invPrice').value); if(!qty||!price) return toast('Məlumatları doldurun',true); const u={}; if(activeInvType==='sale'){ const curStock=DATA.productStock[itemVal]?.qty||0; if(curStock<qty) return toast('Stok Çatmır!',true); u[`prod_stock/${itemVal}/qty`]=curStock-qty; } else { const curRaw=DATA.stock[itemVal]||{qty:0,fat:0}; const newFatIn=parseFloat(document.getElementById('invFat').value); if(isNaN(newFatIn)) return toast('Yağlılıq yazın',true); const newQty=curRaw.qty+qty; const newFat=((curRaw.qty*curRaw.fat)+(qty*newFatIn))/newQty; u[`stock/${itemVal}`]={qty:newQty,fat:Number(newFat.toFixed(2))}; } const iKey=push(ref(db,'invoices')).key; u[`invoices/${iKey}`]={type:activeInvType,partner,item:itemName,qty,price,total:qty*price,date:Date.now()}; const cKey=push(ref(db,'cash')).key; u[`cash/${cKey}`]={type:activeInvType==='purchase'?'out':'in',cat:'Faktura',amount:qty*price,desc:`${activeInvType==='purchase'?'Alış':'Satış'} - ${itemName}`,date:Date.now()}; update(ref(db),u); toast('Faktura Yazıldı'); logAction('Faktura',`${activeInvType==='sale'?'Satış':'Alış'}: ${itemName} (${qty}x)`); document.getElementById('invQty').value=''; }
+        function renderDashboard() { let sales=0; const today=new Date().setHours(0,0,0,0); Object.values(DATA.invoices).forEach(i=>{ if(i.type==='sale' && i.date>=today) sales+=i.total; }); document.getElementById('dashSales').innerText=sales.toFixed(2)+' ₼'; document.getElementById('dashStock').innerText=Object.keys(DATA.stock).length+Object.keys(DATA.productStock).length; }
+        function renderStock() { const r=document.getElementById('stockRaw'); r.innerHTML=''; Object.entries(DATA.stock).forEach(([k,v])=>{ if(v.qty>0) r.innerHTML+=`<div class="card p-4 border-l-4 border-l-gray-400"><b>${k}</b><br>${v.qty.toFixed(2)}kg <span class="text-xs bg-orange-100 text-orange-600 px-1 rounded">${v.fat}%</span></div>`; }); const p=document.getElementById('stockProd'); p.innerHTML=''; Object.entries(DATA.productStock).forEach(([k,v])=>{ if(v.qty>0) { const name=DATA.products[k]?DATA.products[k].name:k; const pkg=DATA.products[k]?DATA.products[k].pkg:''; p.innerHTML+=`<div class="card p-4 border-l-4 border-l-blue-500"><b>${name}</b><br><span class="text-xs text-gray-400">${pkg}</span><br>${v.qty} əd</div>`; } }); }
+        window.addRaw=addRaw; window.addProd=addProd; window.addPartner=addPartner; window.addCat=addCat; window.addCashTx=addCashTx; window.addProductCat=addProductCat; window.updateCatSelect=updateCatSelect; window.confirmWaste=confirmWaste; window.del=del; window.setProdTab = (t) => { activeProdTab=t; const br=document.getElementById('tab-raw'); const bf=document.getElementById('tab-finished'); if(t==='raw'){ br.className="px-6 py-2 rounded-md font-bold text-sm bg-blue-100 text-blue-700"; bf.className="px-6 py-2 rounded-md font-bold text-sm text-gray-500"; } else { br.className="px-6 py-2 rounded-md font-bold text-sm text-gray-500"; bf.className="px-6 py-2 rounded-md font-bold text-sm bg-blue-100 text-blue-700"; } document.getElementById('form-raw').classList.toggle('hidden',t!=='raw'); document.getElementById('form-finished').classList.toggle('hidden',t!=='finished'); renderProdDB(); };
+        function addRaw(){ push(ref(db,'raw_defs'), {name:document.getElementById('rawName').value, cat:document.getElementById('rawCatSelect').value}); document.getElementById('rawName').value=''; }
+        function addProd(){ push(ref(db,'prod_defs'), {name:document.getElementById('prodName').value, cat:document.getElementById('prodCatSelect').value, pkg:document.getElementById('prodPkg').value, price:parseFloat(document.getElementById('prodPrice').value)||0}); document.getElementById('prodName').value=''; }
+        function addPartner(){ push(ref(db,activePartnerTab), {name:document.getElementById('ptName').value, phone:document.getElementById('ptPhone').value, addr:document.getElementById('ptAddr').value, coords:document.getElementById('ptCoords').value}); document.getElementById('ptName').value=''; }
+        function addCat(){ if(document.getElementById('newCatName').value) push(ref(db,'cash_cats'), {name:document.getElementById('newCatName').value, type:document.getElementById('newCatType').value}); }
+        function updateCatSelect(){ const s=document.getElementById('cashCat'); s.innerHTML='<option>Seçin...</option>'; const t=document.getElementById('cashType').value; Object.values(DATA.cashCats).filter(c=>c.type===t).forEach(c=>s.innerHTML+=`<option>${c.name}</option>`); }
+        function addCashTx(){ const amt=parseFloat(document.getElementById('cashAmt').value); if(!amt) return; push(ref(db,'cash'),{type:document.getElementById('cashType').value, cat:document.getElementById('cashCat').value, amount:amt, desc:document.getElementById('cashDesc').value, date:Date.now()}); document.getElementById('cashAmt').value=''; toast('Kassa OK'); }
+        function addProductCat(){ const n=document.getElementById('pCatName').value; const t=document.getElementById('pCatType').value; if(n) push(ref(db,t==='type'?'prod_types':'prod_cats'), {name:n, type:t}); document.getElementById('pCatName').value=''; }
+        function confirmWaste(){ const {id,type}=window.wasteTarget; const qty=parseFloat(document.getElementById('wasteQty').value); const p=type==='raw'?`stock/${id}/qty`:`prod_stock/${id}/qty`; const c=type==='raw'?DATA.stock[id].qty:DATA.productStock[id].qty; if(c>=qty) { update(ref(db),{[p]:c-qty}); document.getElementById('wasteModal').classList.add('hidden'); } else toast('Stok çatmır',true); }
+        function del(p,i){ if(confirm('Silinsin?')) remove(ref(db,`${p}/${i}`)); }
+        function renderProdDB() { const t=document.getElementById('prodTable'); t.innerHTML=''; const src=activeProdTab==='raw'?DATA.raw:DATA.products; const p=activeProdTab==='raw'?'raw_defs':'prod_defs'; Object.entries(src).forEach(([k,v])=>{ t.innerHTML+=`<tr class="hover:bg-gray-50 border-b last:border-0 group"><td class="p-4 font-bold text-gray-700">${v.name}</td><td class="p-4 text-gray-500">${v.cat||'-'}</td><td class="p-4 text-xs text-gray-400">${activeProdTab==='finished'?v.price+'₼ | '+v.pkg:'-'}</td><td class="p-4 text-right flex justify-end gap-2"><button onclick="editItem('${activeProdTab}', '${k}')" class="text-blue-400 hover:text-blue-600"><i class="fas fa-edit"></i></button><button onclick="del('${p}','${k}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button></td></tr>`; }); }
+        function renderCash(){ const t=document.getElementById('cashTable'); t.innerHTML=''; let tot=0,dIn=0,dOut=0; const today=new Date().setHours(0,0,0,0); Object.entries(DATA.cash).sort((a,b)=>b[1].date-a[1].date).forEach(([k,v])=>{ t.innerHTML+=`<tr class="hover:bg-gray-50 border-b last:border-0"><td class="p-4 text-gray-500 text-xs">${new Date(v.date).toLocaleString()}</td><td class="p-4 font-bold ${v.type==='in'?'text-green-600':'text-red-600'}">${v.type==='in'?'Mədaxil':'Məxaric'}</td><td class="p-4 text-gray-700">${v.cat}<br><span class="text-xs text-gray-400">${v.desc||''}</span></td><td class="p-4 font-bold">${v.amount}</td><td class="p-4 text-right"><button onclick="del('cash','${k}')" class="text-red-400"><i class="fas fa-trash"></i></button></td></tr>`; const val=parseFloat(v.amount); if(v.type==='in') tot+=val; else tot-=val; if(v.date>=today){if(v.type==='in')dIn+=val;else dOut+=val;} }); document.getElementById('cashTotal').innerText=tot.toFixed(2)+' ₼'; document.getElementById('cashPrev').innerText=(tot-(dIn-dOut)).toFixed(2); document.getElementById('cashIn').innerText=dIn.toFixed(2); document.getElementById('cashOut').innerText=dOut.toFixed(2); document.getElementById('cashDayBal').innerText=(dIn-dOut).toFixed(2); document.getElementById('dashCash').innerText=tot.toFixed(2)+' ₼'; }
+        function renderCats(){ const l=document.getElementById('catListDisplay'); l.innerHTML=''; Object.entries(DATA.cashCats).forEach(([k,v])=>l.innerHTML+=`<div class="flex justify-between bg-gray-50 p-2 rounded text-xs mb-1"><span>${v.name}</span><button onclick="del('cash_cats','${k}')" class="text-red-500">×</button></div>`); updateCatSelect(); }
+        function renderProdConfig(){ const l=document.getElementById('pCatListDisplay'); l.innerHTML=''; const r=document.getElementById('rawCatSelect'); r.innerHTML=''; const p=document.getElementById('prodCatSelect'); p.innerHTML=''; Object.entries(DATA.prodCats).forEach(([k,v])=>{ l.innerHTML+=`<div class="flex justify-between bg-gray-50 p-2 rounded text-xs mb-1"><span>${v.name} (${v.type})</span><button onclick="del('prod_cats','${k}')" class="text-red-500">×</button></div>`; if(v.type==='raw') r.innerHTML+=`<option>${v.name}</option>`; else p.innerHTML+=`<option>${v.name}</option>`; }); Object.entries(DATA.prodTypes).forEach(([k,v])=>{ l.innerHTML+=`<div class="flex justify-between bg-blue-50 p-2 rounded text-xs mb-1 border border-blue-100"><span>${v.name} (Növ)</span><button onclick="del('prod_types','${k}')" class="text-red-500">×</button></div>`; }); }
+        window.openWaste=(id,type)=>{window.wasteTarget={id,type};document.getElementById('wasteTargetName').innerText=type==='raw'?id:DATA.products[id]?.name;document.getElementById('wasteModal').classList.remove('hidden');}
     </script>
 </body>
 </html>
